@@ -1,0 +1,4 @@
+vscode/
+*.env
+deno.lock
+deno.jsonc
