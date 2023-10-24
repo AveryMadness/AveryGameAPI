@@ -1,0 +1,418 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Avery Game Admin Panel</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f2f2f2;
+        }
+
+        h1 {
+            text-align: center;
+            background-color: #333;
+            color: white;
+            padding: 10px;
+            margin: 0;
+        }
+
+        #user-list {
+            background-color: white;
+            padding: 20px;
+            margin: 20px;
+            border-radius: 5px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            display: none;
+        }
+
+        #users {
+            list-style: none;
+            padding: 0;
+        }
+
+        .user-button {
+            background-color: #ccc;
+            color: #333;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            padding: 10px;
+            margin-bottom: 10px;
+        }
+
+        .user-button:hover {
+            background-color: #f2f2f2;
+        }
+
+        #user-details {
+            background-color: white;
+            padding: 20px;
+            margin: 20px;
+            border-radius: 5px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            display: none;
+        }
+
+        #user-properties {
+            list-style: none;
+            padding: 0;
+        }
+
+        #user-properties li {
+            margin-bottom: 10px;
+        }
+
+        .checkbox-label {
+            display: block;
+            margin-top: 10px;
+        }
+
+        #back-button {
+            margin-top: 10px;
+        }
+
+        .save-button {
+            display: block;
+            margin-top: 10px;
+        }
+
+        #login-form {
+            background-color: white;
+            padding: 20px;
+            margin: 20px;
+            border-radius: 5px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+
+        #login-button {
+            background-color: #3498db;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            padding: 10px;
+            cursor: pointer;
+        }
+
+    </style>
+</head>
+<body>
+    <h1>Avery Game Admin Panel</h1>
+
+    <div id="login-form">
+        <h2>Login</h2>
+        <label for="username">Username:</label>
+        <input type="text" id="username">
+        <br>
+        <label for="password">Password:</label>
+        <input type="password" id="password">
+        <br>
+        <button id="login-button" onclick="login()">Login</button>
+    </div>
+
+    <div id="user-list">
+        <h2>Users</h2>
+        <ul id="users">
+        </ul>
+    </div>
+
+    <div id="user-details">
+        <h2>User Profile</h2>
+        <p><strong>Name: </strong><span id="user-name"></span></p>
+        <p><strong>ID: </strong><span id="user-id"></span></p>
+        <p><strong>Properties:</strong></p>
+        <ul id="user-properties">
+        </ul>
+        <label class="checkbox-label">
+            <input type="checkbox" id="admin-checkbox"> Admin
+        </label>
+        <label class="checkbox-label">
+            <input type="checkbox" id="banned-checkbox"> Banned
+        </label>
+        <label class="checkbox-label">
+            <input type="checkbox" id="beta-tester-checkbox"> Beta Tester
+        </label>
+        <button id="back-button" onclick="goBack()">Back to Users</button>
+        <button class="save-button" onclick="saveUser()">Save</button>
+    </div>
+
+    <script>
+        // Sample data for users and their properties
+        let users = {};
+
+       // checkKey();
+
+        // Current user being displayed
+        let currentUser = null;
+
+        let userId = null;
+
+        // Function to display user details
+        function showUser(username) {
+            currentUser = username;
+            const user = users[username];
+
+            if (user) {
+                document.getElementById("user-name").textContent = user.name;
+                document.getElementById("user-id").textContent = user.id;
+                const propertiesList = document.getElementById("user-properties");
+                propertiesList.innerHTML = '';
+
+                document.getElementById("admin-checkbox").checked = user.admin;
+                document.getElementById("banned-checkbox").checked = user.banned;
+                document.getElementById("beta-tester-checkbox").checked = user.betaTester;
+
+                document.getElementById("user-list").style.display = "none";
+                document.getElementById("user-details").style.display = "block";
+            } else {
+                alert("User not found.");
+            }
+        }
+
+        // Function to save user properties
+        async function saveUser() {
+            if (currentUser) {
+                const user = users[currentUser];
+                const username = document.getElementById("username").value;
+                const password = document.getElementById("password").value;
+
+                if (user) {
+                    user.admin = document.getElementById("admin-checkbox").checked;
+                    user.banned = document.getElementById("banned-checkbox").checked;
+                    user.betaTester = document.getElementById("beta-tester-checkbox").checked;
+
+                    let setAdminUrl = "http://127.0.0.1:8000/api/v1/admin/setAdmin";
+                    let data = {"username": username, "password": password, "user": user.id, "admin": user.admin};
+
+                    let response = await fetch(setAdminUrl, {
+                        method: "POST", // *GET, POST, PUT, DELETE, etc.
+                        mode: "cors", // no-cors, *cors, same-origin
+                        cache: "no-cache", // *default, no-cache, reload, force-cache, only-if-cached
+                        credentials: "same-origin", // include, *same-origin, omit
+                        headers: {
+                            "Content-Type": "application/json",
+                            // 'Content-Type': 'application/x-www-form-urlencoded',
+                        },
+                        redirect: "follow", // manual, *follow, error
+                        referrerPolicy: "no-referrer", // no-referrer, *no-referrer-when-downgrade, origin, origin-when-cross-origin, same-origin, strict-origin, strict-origin-when-cross-origin, unsafe-url
+                        body: JSON.stringify(data), // body data type must match "Content-Type" header
+                    });
+
+                    let json = await response.json();
+                    let errorMessage = json["message"];
+
+                    if (response.status != 200)
+                    {
+                        alert(`Saving user failed. Error: ${errorMessage}`);
+                        return;
+                    }
+
+                    setAdminUrl = "http://127.0.0.1:8000/api/v1/admin/setBetaTester";
+                    data = {"username": username, "password": password, "user": user.id, "betaTester": user.betaTester};
+
+                    response = await fetch(setAdminUrl, {
+                        method: "POST", // *GET, POST, PUT, DELETE, etc.
+                        mode: "cors", // no-cors, *cors, same-origin
+                        cache: "no-cache", // *default, no-cache, reload, force-cache, only-if-cached
+                        credentials: "same-origin", // include, *same-origin, omit
+                        headers: {
+                            "Content-Type": "application/json",
+                            // 'Content-Type': 'application/x-www-form-urlencoded',
+                        },
+                        redirect: "follow", // manual, *follow, error
+                        referrerPolicy: "no-referrer", // no-referrer, *no-referrer-when-downgrade, origin, origin-when-cross-origin, same-origin, strict-origin, strict-origin-when-cross-origin, unsafe-url
+                        body: JSON.stringify(data), // body data type must match "Content-Type" header
+                    });
+
+                    json = await response.json();
+                    errorMessage = json["message"];
+
+                    if (response.status == 200)
+                    {
+                        alert("User properties saved.");
+                    }
+                    else
+                    {
+                        alert(`Saving user failed. Error: ${errorMessage}`);
+                    }
+                }
+            }
+        }
+
+        function setCookie(key, userId) {            
+            document.cookie = "key=" + key + " ;userId=" + userId;
+        }
+
+        function getCookie(name) {
+            const value = `; ${document.cookie}`;
+            const parts = value.split(`; ${name}=`);
+            if (parts.length === 2) return parts.pop().split(';').shift();
+         }
+
+        // Function to go back to user selection
+        function goBack() {
+            currentUser = null;
+            document.getElementById("user-details").style.display = "none";
+            document.getElementById("user-list").style.display = "block";
+        }
+
+        async function getNewKey() {
+            const username = document.getElementById("username").value;
+            const password = document.getElementById("password").value;
+            
+            const data = {"username": username, "password": password, "user": userId};
+            const url = "http://127.0.0.1:8000/api/v1/authentication/createAuthToken";
+
+            const response = await fetch(url, {
+                method: "POST",
+                mode: "cors",
+                cache: "no-cache",
+                credentials: "same-origin",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                redirect: "follow",
+                referrerPolicy: "no-referrer",
+                body: JSON.stringify(data),
+            });
+
+            const json = await response.json();
+
+            const newKey = json["auth"];
+
+            if (response.status == 200)
+            {
+                setCookie(newKey, userId);
+            }
+            else
+            {
+                alert(`Refreshing login token failed, Error: ${json["message"]}`);
+            }
+        }
+
+        // Function to simulate a login
+        async function login() {
+            const username = document.getElementById("username").value;
+            const password = document.getElementById("password").value;
+
+            let success = false;
+            let data = {"username": username, "password": password};
+            let url = "http://127.0.0.1:8000/api/v1/account/authenticateAdmin";
+
+            //const { key, userId } = getCookie();
+            //alert(key);
+
+            const response = await fetch(url, {
+                method: "POST",
+                mode: "cors",
+                cache: "no-cache",
+                credentials: "same-origin",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                redirect: "follow",
+                referrerPolicy: "no-referrer",
+                body: JSON.stringify(data),
+            });
+
+            const json = await response.json();
+            const errorMessage = json["message"];
+            success = response.status == 200;
+            
+            if (success)
+            {
+                setCookie(json["key"], json["userId"]);
+                userId = json["userId"];
+                setInterval(async function () { await getNewKey() }, 180000);
+                document.getElementById("login-form").style.display = "none";
+                await addUsers();
+                document.getElementById("user-list").style.display = "block";
+            } else {
+                alert(`Login failed. Error: ${errorMessage}`);
+            }
+        }
+
+        async function addUsers()
+        {
+            const url = "http://127.0.0.1:8000/api/v1/data/getUsers";
+
+            const response = await fetch(url);
+            const json = await response.json();
+
+            const newUsers = json["users"];
+            users = {};
+
+            const myNode = document.getElementById("users");
+            while (myNode.firstChild) {
+                myNode.removeChild(myNode.lastChild);
+            }
+
+            for (let i = 0; i < newUsers.length; i++)
+            {   
+                users[newUsers[i]["username"]] = {"name": newUsers[i]["username"], "admin": newUsers[i]["admin"], "banned": newUsers[i]["banned"], "betaTester": newUsers[i]["betaTester"], id: newUsers[i]["id"]}; 
+                const element = document.getElementById("users");
+                const list = document.createElement("li");
+                const button = document.createElement("button");
+                button.innerHTML = newUsers[i]["username"];
+                button.onclick = function() {showUser(newUsers[i]["username"])};
+                button.className = "user-button";
+                list.appendChild(button);
+                element.appendChild(list);
+            }
+
+        }
+
+        async function checkKey()
+        {
+            let success = false;
+
+            let url = "http://127.0.0.1:8000/api/v1/account/authenticateAdminKey";
+
+            const { key, userId }= getCookie();
+
+            alert(userId);
+
+            data = {"user": userId};
+
+            
+            if (!key)
+            {
+                return;
+            }
+
+            const response = await fetch(url, {
+                method: "POST",
+                mode: "cors",
+                cache: "no-cache",
+                credentials: "same-origin",
+                headers: {
+                    "Content-Type": "application/json",
+                    "authKey": key
+                },
+                redirect: "follow",
+                referrerPolicy: "no-referrer",
+                body: JSON.stringify(data),
+            });
+
+            const json = await response.json();
+            const errorMessage = json["message"];
+            alert(response.status);
+            success = response.status == 200;
+
+            if (success)
+            {
+                setCookie(json["key"]);
+                userId = json["userId"];
+                document.getElementById("login-form").style.display = "none";
+                document.getElementById("user-list").style.display = "block";
+            }
+            else
+            {
+                return;
+            }
+            
+        }
+    </script>
+</body>
+</html>

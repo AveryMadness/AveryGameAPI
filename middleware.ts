@@ -52,6 +52,11 @@ export const AdminMiddleware = ():MiddlewareHandler => {
             return c.json({error: 404, message: `User ${username} not found.`});
         }
 
+        if (docSnap.data()["banned"])
+        {
+            return c.json({code: 403, message: `User ${username} is banned.`}, 403);
+        }
+
         const hash = docSnap.data()["password"];
 
         if (!await checkHashedPassword(hash, password))
@@ -65,6 +70,56 @@ export const AdminMiddleware = ():MiddlewareHandler => {
         if (!isAdmin)
         {
             return c.json({error: 403, message: `Invalid permissions for user ${username}.`}, 403);
+        }
+
+        await next();
+    };
+}
+
+export const AdminKeyMiddleware = ():MiddlewareHandler => {
+    return async (c, next) => {
+        let userId = c.req.query("user");
+
+        if (!userId)
+        {
+            const json = await c.req.json();
+            userId = json["user"];
+        }
+
+        if (!userId)
+        {
+            userId = c.req.header("user");
+        }
+
+        const authKey = c.req.header("authKey");
+
+        if (!userId || !authKey)
+        {
+            c.status(400);
+            return c.json({code: 400, message: "Invalid user parameters."})
+        }
+
+        const userToken = token.getTokenFromUserId(userId);
+
+        if (userToken != authKey)
+        {
+            c.status(401);
+            return c.json({code: 401, message: "Invalid or expired Authentication Key."});
+        }
+
+        const username = accountUtil.getUsernameFromUserID(userId);
+
+        const userRef = doc(db, "user", username);
+        const userSnap = await getDoc(userRef);
+
+        if (userSnap.data()["banned"])
+        {
+            return c.json({code: 403, message: `User ${username} is banned.`}, 403);
+        }
+
+        if (!userSnap.data()["isAdmin"])
+        {
+            return c.json({code: 403, message: `Not enough permissions for user ${username}.`}, 403);
         }
 
         await next();
@@ -125,6 +180,11 @@ export const UsernamePasswordMiddleware = ():MiddlewareHandler => {
         const userExitsRef = doc(db, "user", username);
         const docSnap = await getDoc(userExitsRef);
 
+        if (docSnap.data()["banned"])
+        {
+            return c.json({code: 403, message: `User ${username} is banned.`}, 403);
+        }
+
         if (!docSnap.exists())
         {
             c.status(404);
@@ -145,5 +205,6 @@ export const UsernamePasswordMiddleware = ():MiddlewareHandler => {
 
 export const userpassAuth = UsernamePasswordMiddleware();
 export const adminAuth = AdminMiddleware();
+export const adminKeyAuth = AdminKeyMiddleware();
 export const keyAuth = AuthKeyMiddleware();
 export const ratelimitAuth = RateLimitedMiddleware();

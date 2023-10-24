@@ -50,6 +50,26 @@ export async function getUsernameFromUserID(userId:string)
     return retVal;
 }
 
+export async function getFriendsFromUserID(userId:string) 
+{
+    const username = await getUsernameFromUserID(userId);
+
+    if (username == "")
+    {
+        return {success: false, friends: []};
+    }
+
+    const q = query(collection(db, "user", username, "friends"), where("status", "==", "ACCEPTED"));
+    const retVal:string[] = [];
+
+    const querySnapshot = await getDocs(q);
+    querySnapshot.forEach((doc:QueryDocumentSnapshot) => {
+        retVal.push(doc.id);
+    }, null);
+
+    return {success: true, friends: retVal};
+}
+
 export async function isUserBetaVerified(userId:string):Promise<boolean>
 {
     const username = await getUsernameFromUserID(userId);

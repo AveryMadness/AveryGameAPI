@@ -8,6 +8,25 @@ import { logger } from "../util.ts";
 export default async function() {
     const router = new Hono();
 
+    router.get("/getFriends", async (c) => {
+        const userId = c.req.query("user");
+
+        if (!userId)
+        {
+            return c.json({code: 400, message: "Invalid query parameters."}, 400);
+        }
+
+        const { success, friends } = await accountUtil.getFriendsFromUserID(userId);
+
+        if (!success)
+        {
+            return c.json({code: 404, message: `User ${userId} not found.`});
+        }
+
+        return c.json({code: 200, message: "Success", friends: friends});
+        
+    });
+
     router.get("/isFriend", async (c) => {
         const user = c.req.query("user");
         const otherUser = c.req.query("otherUser");
@@ -84,6 +103,11 @@ export default async function() {
         const userExistsRef = doc(db, "user", username, "friends", otherUser);
         const userSnap = await getDoc(userExistsRef);
 
+        if (userSnap.data()["banned"])
+        {
+            return c.json({code: 403, message: `User ${username} is banned.`}, 403);
+        }
+
         if (userSnap.exists())
         {
             if (userSnap.data()["status"] != "ACCEPTED")
@@ -100,6 +124,11 @@ export default async function() {
 
         const recipientDoc = doc(db, "user", otherName, "friends", user);
         const recipientSnap = await getDoc(recipientDoc);
+
+        if (recipientSnap.data()["banned"])
+        {
+            return c.json({code: 403, message: `User ${otherName} is banned.`}, 403);
+        }
 
         if (recipientSnap.exists())
         {
@@ -153,6 +182,11 @@ export default async function() {
         const userExistsRef = doc(db, "user", username, "friends", deniee);
         const userSnap = await getDoc(userExistsRef);
 
+        if (userSnap.data()["banned"])
+        {
+            return c.json({code: 403, message: `User ${username} is banned.`}, 403);
+        }
+
         if (userSnap.exists())
         {
             if (userSnap.data()["status"] == "ACCEPTED")
@@ -169,6 +203,11 @@ export default async function() {
 
         const recipientDoc = doc(db, "user", denieeName, "friends", denyingUser);
         const recipientSnap = await getDoc(recipientDoc);
+
+        if (recipientSnap.data()["banned"])
+        {
+            return c.json({code: 403, message: `User ${denieeName} is banned.`}, 403);
+        }
 
         if (recipientSnap.exists())
         {
@@ -222,6 +261,11 @@ export default async function() {
         const userExistsRef = doc(db, "user", username, "friends", acceptee);
         const userSnap = await getDoc(userExistsRef);
 
+        if (userSnap.data()["banned"])
+        {
+            return c.json({code: 403, message: `User ${username} is banned.`}, 403);
+        }
+
         if (userSnap.exists())
         {
             if (userSnap.data()["status"] == "ACCEPTED")
@@ -244,6 +288,11 @@ export default async function() {
 
         const recipientDoc = doc(db, "user", accepteeName, "friends", acceptingUser);
         const recipientSnap = await getDoc(recipientDoc);
+
+        if (recipientSnap.data()["banned"])
+        {
+            return c.json({code: 403, message: `User ${accepteeName} is banned.`}, 403);
+        }
 
         if (recipientSnap.exists())
         {

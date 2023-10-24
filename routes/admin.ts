@@ -72,6 +72,35 @@ export default async function() {
 
     });
 
+    router.post("/setBanned", adminAuth, async (c) => {
+        const postData = await c.req.json();
+        const userToSet = postData["user"];
+        const valueToSet = postData["banned"];
+
+        if (!userToSet || valueToSet == null)
+        {
+            return c.json({code: 400, message: "Invalid user parameters."}, 400);
+        }
+
+        const actualValue = Boolean(valueToSet);
+
+        const username = await accountUtil.getUsernameFromUserID(userToSet);
+
+        if (username == "")
+        {
+            return c.json({code: 404, message: `User ${userToSet} not found.`}, 404);
+        }
+
+        const userRef = doc(db, "user", username);
+        
+        await updateDoc(userRef, {
+            banned: actualValue
+        });
+
+        return c.json({code: 200, message: "Success"}, 200);
+
+    });
+
     router.post("/setBetaTester", adminAuth, async (c) => {
         const postData = await c.req.json();
         const userToSet = postData["user"];

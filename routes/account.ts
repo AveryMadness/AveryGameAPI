@@ -4,11 +4,30 @@ import { logger } from "../util.ts";
 import { db } from "../database.ts";
 import { collection, doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/9.8.1/firebase-firestore.js";
 import * as accountUtil from "../accountUtil.ts"
-import { keyAuth } from "../middleware.ts";
+import { keyAuth, adminAuth, adminKeyAuth } from "../middleware.ts";
 import * as token from "../token.ts";
 
 export default async function() {
     const router = new Hono();
+
+    router.post("/authenticateAdmin", adminAuth, async (c) => {
+        const postData = await c.req.json();
+        const username = postData["username"];
+
+        const userRef = doc(db, "user", username);
+        const userSnap = await getDoc(userRef);
+
+        const userId = userSnap.data()["id"];
+        const key = token.generateToken(userId);
+        return c.json({code: 200, message: "Success", key: key, userId: userId}, 200);
+    });
+
+    router.post("/authenticateAdminKey", adminKeyAuth, async (c) => {
+        const postData = await c.req.json();
+        const userId = postData["user"];
+        const key = token.generateToken(userId);
+        return c.json({code: 200, message: "Success", key: key, userId: userId}, 200);
+    });
 
     router.post("/authenticateUserForBeta", keyAuth, async (c) => {
         const postData = await c.req.json();
@@ -18,6 +37,11 @@ export default async function() {
         const userExistsRef = doc(db, "user", username);
         const docSnap = await getDoc(userExistsRef);
 
+        if (docSnap.data()["banned"])
+        {
+            return c.json({code: 403, message: `User ${username} is banned.`}, 403);
+        }
+
         if (docSnap.exists())
         {
             const data = docSnap.data();
@@ -25,7 +49,7 @@ export default async function() {
             {
                 c.status(200);
                 const key = token.generateToken(data["id"]);
-                return c.json({code: 200, message: "Success", key: key});
+                return c.json({code: 200, message: "Success", key: key, userId: data["id"]});
             }
             else
             {
@@ -52,6 +76,11 @@ export default async function() {
 
         const userExistsRef = doc(db, "user", username);
         const docSnap = await getDoc(userExistsRef);
+
+        if (docSnap.data()["banned"])
+        {
+            return c.json({code: 403, message: `User ${username} is banned.`}, 403);
+        }
         
         if (docSnap.exists())
         {
@@ -62,7 +91,7 @@ export default async function() {
             {
                 c.status(200);
                 const key = token.generateToken(docSnap.data()["id"]);
-                return c.json({code: 200, message: "Success", key: key});
+                return c.json({code: 200, message: "Success", key: key, userId: docSnap.data()["id"]});
             }
             else
             {
@@ -114,7 +143,8 @@ export default async function() {
             password: hashPass,
             profilePhoto: profilePhoto,
             isAdmin: false,
-            betaTester: false
+            betaTester: false,
+            banned: false
         });
 
         await accountUtil.InitializeProfile(username);
