@@ -1,12 +1,39 @@
 import { Hono } from "https://deno.land/x/hono@v3.8.1/mod.ts";
 import * as accountUtil from "../accountUtil.ts";
-import { doc, getDoc, updateDoc } from "https://www.gstatic.com/firebasejs/9.8.1/firebase-firestore.js";
+import { doc, getDoc, setDoc, updateDoc } from "https://www.gstatic.com/firebasejs/9.8.1/firebase-firestore.js";
 import { db } from "../database.ts";
 import { adminAuth } from "../middleware.ts";
 import { logger } from "../util.ts";
 
 export default async function() {
     const router = new Hono();
+
+    router.post("/news/createPost", adminAuth, async (c) => {
+        const postData = await c.req.json();
+        const content = postData["content"];
+        const title = postData["title"];
+        const photo = postData["photo"];
+
+        if (!content || !title || !photo)
+        {
+            return c.json({code: 400, message: "Invalid user parameters."}, 400);
+        }
+
+        const id = (Math.floor(Date.now() * 2 / 1.8)).toString();
+        const creationData = Date.now().toString();
+
+        const newsRef = doc(db, "news", id);
+
+        await setDoc(newsRef, {
+            "content": content,
+            "title": title,
+            "photo": photo,
+            "createdOn": creationData
+        });
+
+        return c.json({code: 200, message: "Success", id: id}, 200);
+
+    });
 
     router.get("/isAdmin", async (c) => {
         const userId = c.req.query("user");

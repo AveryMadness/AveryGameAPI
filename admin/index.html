@@ -111,8 +111,11 @@
         <button id="login-button" onclick="login()">Login</button>
     </div>
 
+
     <div id="user-list">
         <h2>Users</h2>
+        <button id = "createUserButton" class="user-button" onclick="promptCreateUser()">Create User</button>
+        <br>
         <ul id="users">
         </ul>
     </div>
@@ -147,6 +150,14 @@
         let currentUser = null;
 
         let userId = null;
+
+        function promptCreateUser() {
+            let username = prompt("Username");
+            let password = prompt("Password");
+            let profilePhoto = prompt("Profile Photo");
+
+            createUser(username, password, profilePhoto);
+        }
 
         // Function to display user details
         function showUser(username) {
@@ -210,6 +221,32 @@
 
                     setAdminUrl = "http://127.0.0.1:8000/api/v1/admin/setBetaTester";
                     data = {"username": username, "password": password, "user": user.id, "betaTester": user.betaTester};
+
+                    response = await fetch(setAdminUrl, {
+                        method: "POST", // *GET, POST, PUT, DELETE, etc.
+                        mode: "cors", // no-cors, *cors, same-origin
+                        cache: "no-cache", // *default, no-cache, reload, force-cache, only-if-cached
+                        credentials: "same-origin", // include, *same-origin, omit
+                        headers: {
+                            "Content-Type": "application/json",
+                            // 'Content-Type': 'application/x-www-form-urlencoded',
+                        },
+                        redirect: "follow", // manual, *follow, error
+                        referrerPolicy: "no-referrer", // no-referrer, *no-referrer-when-downgrade, origin, origin-when-cross-origin, same-origin, strict-origin, strict-origin-when-cross-origin, unsafe-url
+                        body: JSON.stringify(data), // body data type must match "Content-Type" header
+                    });
+
+                    json = await response.json();
+                    errorMessage = json["message"];
+
+                    if (response.status != 200)
+                    {
+                        alert(`Saving user failed. Error: ${errorMessage}`);
+                        return;
+                    }
+
+                    setAdminUrl = "http://127.0.0.1:8000/api/v1/admin/setBanned";
+                    data = {"username": username, "password": password, "user": user.id, "banned": user.banned};
 
                     response = await fetch(setAdminUrl, {
                         method: "POST", // *GET, POST, PUT, DELETE, etc.
@@ -361,6 +398,39 @@
                 element.appendChild(list);
             }
 
+        }
+
+        async function createUser(username, password, profilePhoto)
+        {
+            let url = "http://127.0.0.1:8000/api/v1/account/createUser";
+
+            const data = {"username": username, "password": password, "profilePhoto": profilePhoto};
+
+            const response = await fetch(url, {
+                method: "POST",
+                mode: "cors",
+                cache: "no-cache",
+                credentials: "same-origin",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                redirect: "follow",
+                referrerPolicy: "no-referrer",
+                body: JSON.stringify(data),
+            });
+
+            const json = await response.json();
+            const errorMessage = json["message"];
+            success = response.status == 200;
+
+            if (!success)
+            {
+                alert(`Failed to create user. Error: ${errorMessage}`);
+                return;
+            }
+
+            alert("Created user!");
+            addUsers();
         }
 
         async function checkKey()

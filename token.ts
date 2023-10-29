@@ -3,7 +3,7 @@ import { logger } from "./util.ts";
 
 export const tokens:Map<string, string> = new Map();
 
-export function generateToken(userId:string)
+export function generateToken(userId:string, expire:boolean = true)
 {
 
     const existingToken = getTokenFromUserId(userId);
@@ -16,7 +16,8 @@ export function generateToken(userId:string)
     const token = accessToken.generate("ags", userId);
     
     tokens.set(token, userId);
-    setTimeout(() => invalidateToken(token), parseInt(Deno.env.get("TOKEN_LIFESPAN") ?? "180") * 1000);
+    if (!expire)
+        setTimeout(() => invalidateToken(token), parseInt(Deno.env.get("TOKEN_LIFESPAN") ?? "180") * 1000);
     return token;
 }
 

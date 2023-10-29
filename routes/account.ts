@@ -4,7 +4,7 @@ import { logger } from "../util.ts";
 import { db } from "../database.ts";
 import { collection, doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/9.8.1/firebase-firestore.js";
 import * as accountUtil from "../accountUtil.ts"
-import { keyAuth, adminAuth, adminKeyAuth } from "../middleware.ts";
+import { keyAuth, adminAuth, adminKeyAuth, userpassAuth } from "../middleware.ts";
 import * as token from "../token.ts";
 
 export default async function() {
@@ -27,6 +27,52 @@ export default async function() {
         const userId = postData["user"];
         const key = token.generateToken(userId);
         return c.json({code: 200, message: "Success", key: key, userId: userId}, 200);
+    });
+
+    router.get("getMtxCurrency", keyAuth, async (c) => {
+        const user = await c.req.header("user") || "";
+
+        const username = await accountUtil.getUsernameFromUserID(user);
+
+        if (!username)
+        {
+            c.json({code: 404, message: `User ${user} not found.`}, 404);
+        }
+
+        const userRef = doc(db, "user", username);
+        const userSnap = await getDoc(userRef);
+
+        let MtxCurrency:Number = 0;
+
+        MtxCurrency = userSnap.data()["MtxCurrency"];
+
+        return c.json({code: 200, message: "Success", mtx: MtxCurrency ?? 0});
+    });
+
+    router.get("getPermission", async (c) => {
+        const user = c.req.query("user");
+
+        if (!user)
+        {
+            return c.json({code: 400, message: "Invalid user parameters"}, 400);
+        }
+
+        const username = await accountUtil.getUsernameFromUserID(user);
+
+        if (!username)
+        {
+            return c.json({code: 404, message: `User for ${user} not found.`}, 404);
+        }
+
+        const userRef = doc(db, "user", username);
+        const userSnap = await getDoc(userRef);
+
+        if (!userSnap.exists())
+        {
+            return c.json({code: 404, message: `User ${username} not found.`}, 404);
+        }
+
+        return c.json({code: 200, message: "Success", hasPermission: userSnap.data()["betaTester"] || userSnap.data()["isAdmin"]}, 200);
     });
 
     router.post("/authenticateUserForBeta", keyAuth, async (c) => {
@@ -74,12 +120,19 @@ export default async function() {
             return c.json({code: 400, message: "Invalid user parameters."});
         }
 
+        if (username == "" || password == "")
+        {
+            c.status(400);
+            return c.json({code: 400, message: "Invalid user parameters."});
+        }
+
         const userExistsRef = doc(db, "user", username);
         const docSnap = await getDoc(userExistsRef);
 
-        if (docSnap.data()["banned"])
+        if (docSnap.data()["banned"] != null)
         {
-            return c.json({code: 403, message: `User ${username} is banned.`}, 403);
+            if (docSnap.data()["banned"])
+                return c.json({code: 403, message: `User ${username} is banned.`}, 403);
         }
         
         if (docSnap.exists())
@@ -89,8 +142,12 @@ export default async function() {
 
             if (validPass)
             {
+                const useragent = c.req.header("User-Agent");
+                let shouldKeyExpire = true;
+                if (useragent?.includes("AveryGame/"))
+                    shouldKeyExpire = false;
                 c.status(200);
-                const key = token.generateToken(docSnap.data()["id"]);
+                const key = token.generateToken(docSnap.data()["id"], shouldKeyExpire);
                 return c.json({code: 200, message: "Success", key: key, userId: docSnap.data()["id"]});
             }
             else

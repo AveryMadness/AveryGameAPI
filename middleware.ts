@@ -134,8 +134,12 @@ export const AuthKeyMiddleware = ():MiddlewareHandler => {
 
         if (!userId)
         {
-            const json = await c.req.json();
-            userId = json["user"];
+            try {
+                const json = await c.req.json();
+                userId = json["user"];
+            }
+            catch (e)
+            {}
         }
 
         if (!userId)

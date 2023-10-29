@@ -1,5 +1,5 @@
 import { Hono } from "https://deno.land/x/hono@v3.8.1/mod.ts";
-import { DocumentSnapshot, QueryDocumentSnapshot, collection, doc, getDoc, getDocs } from "https://www.gstatic.com/firebasejs/9.8.1/firebase-firestore.js";
+import { DocumentSnapshot, Query, QueryDocumentSnapshot, collection, doc, getDoc, getDocs, query } from "https://www.gstatic.com/firebasejs/9.8.1/firebase-firestore.js";
 import { db } from "../database.ts";
 import { logger } from "../util.ts";
 import { ratelimitAuth } from "../middleware.ts";
@@ -11,6 +11,54 @@ export default async function() {
     router.get("/test", ratelimitAuth, async (c) => {
         return c.text("Not limited!");
     });
+
+    router.get("/news/getRecentPost", async (c) => {
+        const q = query(collection(db, "news"));
+
+        let retObject:QueryDocumentSnapshot = new QueryDocumentSnapshot();
+        let mostRecentDate:Date = new Date(628021800000);
+        let success:Boolean = false;
+        let idChosen:string = "";
+
+        const querySnapshot = await getDocs(q);
+        querySnapshot.forEach((doc:QueryDocumentSnapshot) => {
+            const dateToCompare = new Date(parseInt(doc.data()["createdOn"]));
+            if (dateToCompare > mostRecentDate)
+            {
+                success = true;
+                retObject = doc;
+                mostRecentDate = new Date(parseInt(doc.data()["createdOn"]));
+                idChosen = doc.id;
+            }
+            else
+            {
+            }
+        }, null);
+
+        if (!success)
+        {
+            return c.json({code: 404, message: "No Posts found."}, 404);
+        }
+
+
+        return c.json({code: 200, message: "Success", id: idChosen, post: {content: retObject.data()["content"], title: retObject.data()["title"], photo: retObject.data()["photo"]}});
+    });
+
+    router.get("/news/:postId", async (c) => {
+        const { postId } = c.req.param();
+
+        const newsRef = doc(db, "news", postId);
+        const newsSnap = await getDoc(newsRef);
+
+        if (!newsSnap.exists())
+        {
+            return c.json({code: 404, message: `Post ${postId} not found.`}, 404);
+        }
+
+        return c.json({code: 200, message: "Success", post: {content: newsSnap.data()["content"], photo: newsSnap.data()["photo"], title: newsSnap.data()["title"]}});
+    });
+
+    
 
     router.get("/user/:userId", async (c) => {
         const { userId } = c.req.param();
@@ -27,7 +75,7 @@ export default async function() {
 
         const data = userSnap.data();
 
-        return c.json({code: 200, message: "Success", data: {username: username, id: userId, isAdmin: data["isAdmin"], betaTester: data["betaTester"], profilePhoto: data["profilePhoto"]}}, 200);
+        return c.json({code: 200, message: "Success", username: username, id: userId, isAdmin: data["isAdmin"], betaTester: data["betaTester"], profilePhoto: data["profilePhoto"]}, 200);
     });
 
     router.get("/getUsers", ratelimitAuth, async (c) => {
