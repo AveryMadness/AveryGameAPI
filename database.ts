@@ -10,6 +10,7 @@ import {
     getDoc,
     getDocs,
     getFirestore,
+    initializeFirestore,
     query,
     QuerySnapshot,
     setDoc,
@@ -29,5 +30,8 @@ export const app = initializeApp({
     appId: Deno.env.get("FIREBASE_APP_ID"),
     measurementId: Deno.env.get("FIREBASE_MEASUREMENT_ID"),
 });
-export const db = getFirestore(app);
+export const db = initializeFirestore(app, {
+  experimentalForceLongPolling: true,
+  timestampsInSnapshots: true
+});
 export const auth = getAuth(app);

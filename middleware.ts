@@ -6,12 +6,12 @@ import * as token from "./token.ts";
 import { logger } from "./util.ts";
 import * as accountUtil from "./accountUtil.ts"
 
-let rateLimits:string[] = [];
+const rateLimits:string[] = [];
 
 export const RateLimitedMiddleware = ():MiddlewareHandler => {
     return async (c, next) => {
-        const { transport, hostname, port } = await accountUtil.getRemoteAddr(c.req);
-        const address = hostname;
+        const hostName = await accountUtil.getRemoteAddr(c.req);
+        const address = hostName;
         
         if (address == "")
         {

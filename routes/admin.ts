@@ -1,9 +1,10 @@
 import { Hono } from "https://deno.land/x/hono@v3.8.1/mod.ts";
 import * as accountUtil from "../accountUtil.ts";
-import { doc, getDoc, setDoc, updateDoc } from "https://www.gstatic.com/firebasejs/9.8.1/firebase-firestore.js";
+import { deleteDoc, doc, getDoc, setDoc, updateDoc } from "https://www.gstatic.com/firebasejs/9.8.1/firebase-firestore.js";
 import { db } from "../database.ts";
 import { adminAuth } from "../middleware.ts";
 import { logger } from "../util.ts";
+import { to } from "https://deno.land/x/optic@1.3.11/logger/profileMeasure.ts";
 
 export default async function() {
     const router = new Hono();
@@ -33,6 +34,64 @@ export default async function() {
 
         return c.json({code: 200, message: "Success", id: id}, 200);
 
+    });
+
+    router.post("/setMtxCurrency", adminAuth, async (c) => {
+        const jsonData = await c.req.json();
+        const user = jsonData["user"];
+        const amount = jsonData["MtxCurrency"];
+
+        if (!user || !amount || isNaN(amount))
+        {
+            return c.json({code: 400, message: "Invalid user parameters."}, 400);
+        }
+
+        const username = await accountUtil.getUsernameFromUserID(user);
+
+        if (!username)
+        {
+            return c.json({code: 404, message: `User ${user} not found.`}, 404);
+        }
+
+        const docRef = doc(db, "user", username);
+        const docSnap = await getDoc(docRef);
+
+        await updateDoc(docRef, {
+            MtxCurrency: amount
+        });
+        
+    });
+
+    router.post("/deleteUser", adminAuth, async (c) => {
+        const jsonData = await c.req.json();
+        const toDelete = jsonData["toDelete"];
+        const deleterUsername = jsonData["username"];
+
+        const username = await accountUtil.getUsernameFromUserID(toDelete);
+
+        if (!username)
+        {
+            return c.json({code: 404, message: `User ${toDelete} not found.`}, 404);
+        }
+
+        if (username == jsonData["username"])
+        {
+            return c.json({code: 403, message: `Cannot delete user ${username}. Insufficient Permissions.`}, 403);
+        }
+
+        const docRef = doc(db, "user", username);
+        const docSnap = await getDoc(docRef);
+
+        const deleterRef = doc(db, "user", deleterUsername);
+        const deleterSnap = await getDoc(deleterRef);
+
+        if (docSnap.data()["isAdmin"] == true && deleterSnap.data()["id"] != "1698121131246")
+        {
+            return c.json({code: 403, message: `Cannot delete user ${username}. Insufficient Permissions.`}, 403);
+        }
+
+        await deleteDoc(docRef);
+        return c.json({code: 200, message: "Success"}, 200);
     });
 
     router.get("/isAdmin", async (c) => {

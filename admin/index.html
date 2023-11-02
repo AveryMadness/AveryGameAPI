@@ -8,14 +8,22 @@
             margin: 0;
             padding: 0;
             background-color: #f2f2f2;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
         }
 
         h1 {
-            text-align: center;
             background-color: #333;
             color: white;
             padding: 10px;
             margin: 0;
+            width: 100%;
+            text-align: center;
+            position: absolute;
+            top: 0;
         }
 
         #user-list {
@@ -46,7 +54,7 @@
             background-color: #f2f2f2;
         }
 
-        #user-details {
+        #user-details, #create-user {
             background-color: white;
             padding: 20px;
             margin: 20px;
@@ -78,46 +86,97 @@
             margin-top: 10px;
         }
 
-        #login-form {
-            background-color: white;
-            padding: 20px;
-            margin: 20px;
+        #login-container {
+            background-color: rgba(255, 255, 255, 0.9);
             border-radius: 5px;
-            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
+            text-align: center;
         }
 
-        #login-button {
+        #login-form {
+            padding: 20px;
+            box-sizing: border-box;
+            display: inline-block; /* Display the form as an inline-block */
+        }
+
+        #create-user-container {
+            background-color: rgba(255, 255, 255, 0.9);
+            border-radius: 5px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
+            text-align: center;
+            margin-top: 20px; /* Add margin to separate the containers */
+        }
+
+        #create-user-form {
+            padding: 20px;
+            box-sizing: border-box;
+            display: inline-block; /* Display the form as an inline-block */
+        }
+
+       
+
+        label {
+            display: block;
+            margin-top: 10px;
+        }
+
+        input[type="text"],
+        input[type="password"] {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+
+        #login-button,
+        #create-user-button {
             background-color: #3498db;
             color: white;
             border: none;
             border-radius: 5px;
             padding: 10px;
             cursor: pointer;
+            width: 100%;
         }
 
     </style>
 </head>
 <body>
-    <h1>Avery Game Admin Panel</h1>
 
-    <div id="login-form">
-        <h2>Login</h2>
-        <label for="username">Username:</label>
-        <input type="text" id="username">
-        <br>
-        <label for="password">Password:</label>
-        <input type="password" id="password">
-        <br>
-        <button id="login-button" onclick="login()">Login</button>
+    <h1>Avery Game Admin Panel</h1>
+    <div id="login-container">
+        <div id="login-form">
+            <h2>Login</h2>
+            <label for="username">Username:</label>
+            <input type="text" id="username">
+            <label for="password">Password:</label>
+            <input type="password" id="password">
+            <br><br>
+            <button id="login-button" onclick="login()">Login</button>
+        </div>
     </div>
 
 
     <div id="user-list">
         <h2>Users</h2>
-        <button id = "createUserButton" class="user-button" onclick="promptCreateUser()">Create User</button>
+        <button id = "createUserButton" class="user-button" onclick="showCreateUser()">Create User</button>
         <br>
         <ul id="users">
         </ul>
+    </div>
+
+    <div id="create-user">
+        <h2>Create User</h2>
+        <label for="username">Username:</label>
+        <input type="text" id="signupusername">
+        <label for="password">Password:</label>
+        <input type="password" id="signuppassword">
+        <label for="profilePhoto">Profile Photo</label>
+        <input type="text" id="profilePhoto">
+        <br>
+        <button id="login-button" onclick="createUser(document.getElementById('signupusername').value, document.getElementById('signuppassword').value, document.getElementById('profilePhoto').value)">Create User</button>
+        <br>
+        <button id="login-button" onclick="goBack()">Back to Users</button>
     </div>
 
     <div id="user-details">
@@ -136,8 +195,15 @@
         <label class="checkbox-label">
             <input type="checkbox" id="beta-tester-checkbox"> Beta Tester
         </label>
-        <button id="back-button" onclick="goBack()">Back to Users</button>
-        <button class="save-button" onclick="saveUser()">Save</button>
+        <label for="MtxInput">Mtx Currency: </label>
+        <input type="text" id="MtxInput">
+        <br>
+        <button id="login-button" class="save-button" onclick="saveUser()">Save</button>
+        <br>
+        <button id="login-button" onclick="goBack()">Back to Users</button>
+        <br>
+        <button id="login-button" onclick="deleteUser(document.getElementById('user-id').innerHTML)">Delete User</button>
+
     </div>
 
     <script>
@@ -157,6 +223,47 @@
             let profilePhoto = prompt("Profile Photo");
 
             createUser(username, password, profilePhoto);
+        }
+
+        async function deleteUser(userid) {
+            if (!confirm("Are you sure you would like to delete user " + userid + "?"))
+                return;
+            if (userid)
+            {
+                const username = document.getElementById("username").value;
+                const password = document.getElementById("password").value;
+                let setAdminUrl = "http://127.0.0.1:8000/api/v1/admin/deleteUser";
+                let data = {"username": username, "password": password, "toDelete": userid};
+                let response = await fetch(setAdminUrl, {
+                    method: "POST", // *GET, POST, PUT, DELETE, etc.
+                    mode: "cors", // no-cors, *cors, same-origin
+                    cache: "no-cache", // *default, no-cache, reload, force-cache, only-if-cached
+                    credentials: "same-origin", // include, *same-origin, omit
+                    headers: {
+                        "Content-Type": "application/json",
+                        // 'Content-Type': 'application/x-www-form-urlencoded',
+                    },
+                    redirect: "follow", // manual, *follow, error
+                    referrerPolicy: "no-referrer", // no-referrer, *no-referrer-when-downgrade, origin, origin-when-cross-origin, same-origin, strict-origin, strict-origin-when-cross-origin, unsafe-url
+                    body: JSON.stringify(data), // body data type must match "Content-Type" header
+                });
+
+                const json = await response.json();
+
+                if (response.status == 200)
+                {
+                    addUsers();
+                    goBack();
+                }
+                else
+                {
+                    alert("An error has occurred. " + json["message"]);
+                }
+            }
+            else
+            {
+                alert("No user ID");
+            }
         }
 
         // Function to display user details
@@ -179,6 +286,11 @@
             } else {
                 alert("User not found.");
             }
+        }
+
+        function showCreateUser() {
+            document.getElementById('user-list').style.display = "none";
+            document.getElementById('create-user').style.display = "block";
         }
 
         // Function to save user properties
@@ -292,6 +404,7 @@
             currentUser = null;
             document.getElementById("user-details").style.display = "none";
             document.getElementById("user-list").style.display = "block";
+            document.getElementById("create-user").style.display = "none";
         }
 
         async function getNewKey() {

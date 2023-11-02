@@ -30,6 +30,7 @@ app.route("/api/v1/authentication", await (await import("./routes/auth.ts")).def
 app.route("api/v1/friend", await (await import("./routes/friend.ts")).default());
 app.route("api/v1/admin", await (await import("./routes/admin.ts")).default());
 app.route("api/v1/data", await (await import("./routes/data.ts")).default());
+app.route("api/v1/game", await (await import("./routes/game.ts")).default());
 
 const abortController = new AbortController();
 
