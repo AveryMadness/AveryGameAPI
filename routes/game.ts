@@ -1,4 +1,5 @@
 import { Hono } from "https://deno.land/x/hono@v3.8.1/mod.ts";
+import { logger } from "../util.ts";
 
 
 export default async function() {
@@ -13,6 +14,8 @@ export default async function() {
         {
             return c.json({code: 400, message: "Invalid user parameters."}, 400);
         }
+
+        logger.info(currentGameVersion);
 
         return c.json({code: 200, message: "Success", correctVersion: (gameVersion == currentGameVersion) ?? false});
     });

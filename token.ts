@@ -16,7 +16,7 @@ export function generateToken(userId:string, expire:boolean = true)
     const token = accessToken.generate("ags", userId);
     
     tokens.set(token, userId);
-    if (!expire)
+    if (expire)
         setTimeout(() => invalidateToken(token), parseInt(Deno.env.get("TOKEN_LIFESPAN") ?? "180") * 1000);
     return token;
 }

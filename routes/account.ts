@@ -144,8 +144,10 @@ export default async function() {
             {
                 const useragent = c.req.header("User-Agent");
                 let shouldKeyExpire = true;
+                logger.info(useragent);
                 if (useragent?.includes("AveryGame/"))
                     shouldKeyExpire = false;
+                logger.info(shouldKeyExpire);
                 c.status(200);
                 const key = token.generateToken(docSnap.data()["id"], shouldKeyExpire);
                 return c.json({code: 200, message: "Success", key: key, userId: docSnap.data()["id"]});

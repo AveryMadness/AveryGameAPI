@@ -5,6 +5,7 @@ import { auth, db } from "./database.ts"
 import { collection, doc, getDoc } from "https://www.gstatic.com/firebasejs/9.8.1/firebase-firestore.js";
 import { cors } from 'https://deno.land/x/hono/middleware.ts'
 import { serve } from "https://deno.land/std/http/server.ts";
+import { InitializeWebsocketServer } from "./wss/main.ts"
 
 
 const app = new Hono({});
@@ -33,6 +34,8 @@ app.route("api/v1/data", await (await import("./routes/data.ts")).default());
 app.route("api/v1/game", await (await import("./routes/game.ts")).default());
 
 const abortController = new AbortController();
+
+InitializeWebsocketServer();
 
 
 serve(app.fetch, {

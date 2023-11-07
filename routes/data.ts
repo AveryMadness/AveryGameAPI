@@ -75,7 +75,7 @@ export default async function() {
 
         const data = userSnap.data();
 
-        return c.json({code: 200, message: "Success", username: username, id: userId, isAdmin: data["isAdmin"], betaTester: data["betaTester"], profilePhoto: data["profilePhoto"]}, 200);
+        return c.json({code: 200, message: "Success", username: username, id: userId, banned: data["banned"], isAdmin: data["isAdmin"], betaTester: data["betaTester"], profilePhoto: data["profilePhoto"], MtxCurrency: data["MtxCurrency"] ?? 0}, 200);
     });
 
     router.get("/getUsers", ratelimitAuth, async (c) => {
