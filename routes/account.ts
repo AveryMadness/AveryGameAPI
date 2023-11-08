@@ -129,6 +129,11 @@ export default async function() {
         const userExistsRef = doc(db, "user", username);
         const docSnap = await getDoc(userExistsRef);
 
+        if (!docSnap.exists())
+        {
+            return c.json({code: 404, message: `User ${username} not found.`}, 404);
+        }
+
         if (docSnap.data()["banned"] != null)
         {
             if (docSnap.data()["banned"])
@@ -210,7 +215,7 @@ export default async function() {
 
         logger.info(`Created user for ${username} with id ${id}`);
 
-        return c.json({code: 200, message: "Success"});
+        return c.json({code: 200, message: "Success", userId: id});
     });
 
 
