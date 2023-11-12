@@ -60,7 +60,7 @@ export async function getFriendsFromUserID(userId:string)
     }
 
     const q = query(collection(db, "user", username, "friends"), where("status", "==", "ACCEPTED"));
-    const retVal:string[] = [];
+    const retVal:object[] = [];
 
     const querySnapshot = await getDocs(q);
     querySnapshot.forEach((doc:QueryDocumentSnapshot) => {

@@ -63,11 +63,15 @@ export default async function() {
     router.get("/user/:userId", async (c) => {
         const { userId } = c.req.param();
         
-        const username = await accountUtil.getUsernameFromUserID(userId);
+        let username = await accountUtil.getUsernameFromUserID(userId);
 
         if (username == "")
         {
-            return c.json({code: 404, message: `User ${userId} not found.`}, 404);
+            username = userId;
+            const userRef = doc(db, "user", username);
+            const userSnap = await getDoc(userRef);
+            if (!userSnap.exists())
+                return c.json({code: 404, message: `User ${userId} not found.`}, 404);
         }
 
         const userRef = doc(db, "user", username);
@@ -75,7 +79,7 @@ export default async function() {
 
         const data = userSnap.data();
 
-        return c.json({code: 200, message: "Success", username: username, id: userId, banned: data["banned"], isAdmin: data["isAdmin"], betaTester: data["betaTester"], profilePhoto: data["profilePhoto"], MtxCurrency: data["MtxCurrency"] ?? 0}, 200);
+        return c.json({code: 200, message: "Success", username: username, id: data["id"], banned: data["banned"], isAdmin: data["isAdmin"], betaTester: data["betaTester"], profilePhoto: data["profilePhoto"], MtxCurrency: data["MtxCurrency"] ?? 0}, 200);
     });
 
     router.get("/getUsers", ratelimitAuth, async (c) => {

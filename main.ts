@@ -2,10 +2,15 @@ import "https://deno.land/std/dotenv/load.ts";
 import { Hono } from 'https://deno.land/x/hono/mod.ts' 
 import { logger } from "./util.ts"
 import { auth, db } from "./database.ts"
+import { tokens } from "./token.ts";
 import { collection, doc, getDoc } from "https://www.gstatic.com/firebasejs/9.8.1/firebase-firestore.js";
 import { cors } from 'https://deno.land/x/hono/middleware.ts'
 import { serve } from "https://deno.land/std/http/server.ts";
 import { InitializeWebsocketServer } from "./wss/main.ts"
+import { TextProtoReader } from "https://deno.land/std@0.92.0/textproto/mod.ts";
+import { BufReader } from "https://deno.land/std@0.92.0/io/bufio.ts";
+import { readerFromStreamReader } from "https://deno.land/std@0.205.0/streams/mod.ts";
+
 
 
 const app = new Hono({});
@@ -16,6 +21,8 @@ app.onError((err, c) => {
   return c.json({
     errorName: err.name ?? "Unknown Error",
     errorMessage: err.message,
+    code: 500,
+    message: err.message
   }, 500);
 });
 
@@ -25,6 +32,29 @@ app.use(
     origin: "*",
   })
 )
+
+
+try {
+const tp = new TextProtoReader( new 
+BufReader(await Deno.open('permenantKeys.txt', { read: true})));
+
+let line;
+while (line = await tp.readLine())
+{
+  if (line == "")
+    continue;
+  const keyandid = line.split(";");
+  tokens.set(keyandid[0], keyandid[1]);
+}
+}
+catch (exception)
+{
+  logger.error(exception);
+}
+finally
+{
+  logger.info("Initialized linked keys.");
+}
   
 app.route("/api/v1/account", await (await import("./routes/account.ts")).default());
 app.route("/api/v1/authentication", await (await import("./routes/auth.ts")).default());
@@ -36,6 +66,7 @@ app.route("api/v1/game", await (await import("./routes/game.ts")).default());
 const abortController = new AbortController();
 
 InitializeWebsocketServer();
+
 
 
 serve(app.fetch, {

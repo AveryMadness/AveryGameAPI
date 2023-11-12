@@ -59,6 +59,8 @@ export default async function() {
         await updateDoc(docRef, {
             MtxCurrency: amount
         });
+
+        return c.json({code: 200, message: "Success"}, 200);
         
     });
 

@@ -2,3 +2,4 @@ vscode/
 *.env
 deno.lock
 deno.jsonc
+permenantKeys.txt

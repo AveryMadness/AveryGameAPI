@@ -18,14 +18,18 @@ export default async function() {
         const userSnap = await getDoc(userRef);
 
         const userId = userSnap.data()["id"];
-        const key = token.generateToken(userId);
+        const key = await token.generateToken(userId);
         return c.json({code: 200, message: "Success", key: key, userId: userId}, 200);
+    });
+
+    router.get("/game/getItem", async (c) => {
+
     });
 
     router.post("/authenticateAdminKey", adminKeyAuth, async (c) => {
         const postData = await c.req.json();
         const userId = postData["user"];
-        const key = token.generateToken(userId);
+        const key = await token.generateToken(userId);
         return c.json({code: 200, message: "Success", key: key, userId: userId}, 200);
     });
 
@@ -94,7 +98,7 @@ export default async function() {
             if (data["betaTester"] == true || data["isAdmin"] == true)
             {
                 c.status(200);
-                const key = token.generateToken(data["id"]);
+                const key = await token.generateToken(data["id"]);
                 return c.json({code: 200, message: "Success", key: key, userId: data["id"]});
             }
             else
@@ -149,12 +153,10 @@ export default async function() {
             {
                 const useragent = c.req.header("User-Agent");
                 let shouldKeyExpire = true;
-                logger.info(useragent);
                 if (useragent?.includes("AveryGame/"))
                     shouldKeyExpire = false;
-                logger.info(shouldKeyExpire);
                 c.status(200);
-                const key = token.generateToken(docSnap.data()["id"], shouldKeyExpire);
+                const key = await token.generateToken(docSnap.data()["id"], shouldKeyExpire);
                 return c.json({code: 200, message: "Success", key: key, userId: docSnap.data()["id"]});
             }
             else

@@ -10,13 +10,21 @@ export default async function() {
 
     router.get("/getFriends", async (c) => {
         const userId = c.req.query("user");
+        const returnID = c.req.query("x");
+
+        let returnBool = true;
 
         if (!userId)
         {
             return c.json({code: 400, message: "Invalid query parameters."}, 400);
         }
 
-        const { success, friends } = await accountUtil.getFriendsFromUserID(userId);
+        if (returnID != undefined)
+        {
+            returnBool = Boolean(returnID);
+        }
+
+        const { success, friends } = await accountUtil.getFriendsFromUserID(userId, returnBool);
 
         if (!success)
         {
@@ -182,13 +190,15 @@ export default async function() {
         const userExistsRef = doc(db, "user", username, "friends", deniee);
         const userSnap = await getDoc(userExistsRef);
 
-        if (userSnap.data()["banned"])
-        {
-            return c.json({code: 403, message: `User ${username} is banned.`}, 403);
-        }
+       
 
         if (userSnap.exists())
         {
+            if (userSnap.data()["banned"])
+            {
+                return c.json({code: 403, message: `User ${username} is banned.`}, 403);
+            }
+            
             if (userSnap.data()["status"] == "ACCEPTED")
             {
                 c.status(400);
@@ -261,13 +271,14 @@ export default async function() {
         const userExistsRef = doc(db, "user", username, "friends", acceptee);
         const userSnap = await getDoc(userExistsRef);
 
-        if (userSnap.data()["banned"])
-        {
-            return c.json({code: 403, message: `User ${username} is banned.`}, 403);
-        }
-
+       
         if (userSnap.exists())
         {
+            if (userSnap.data()["banned"])
+            {
+                return c.json({code: 403, message: `User ${username} is banned.`}, 403);
+            }
+
             if (userSnap.data()["status"] == "ACCEPTED")
             {
                 c.status(400);
@@ -349,6 +360,16 @@ export default async function() {
         }
 
         const userExistsRef = doc(db, "user", username, "friends", recipient);
+
+        const docSnap = await getDoc(userExistsRef);
+
+        const data = docSnap.data();
+
+
+        if ((docSnap.exists() && data["status"] != undefined) && (data["status"] == "SENT" || data["status"] == "PENDING" || data["status"] == "ACCEPTED"))
+        {
+            return c.json({code: 400, message: `User ${username} has an existing pending or accepted friend request to ${recipientName}`}, 400);
+        }
 
         const recipientDoc = doc(db, "user", recipientName, "friends", userId);
 
