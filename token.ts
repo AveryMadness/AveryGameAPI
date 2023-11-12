@@ -1,6 +1,6 @@
 import { accessToken } from "https://deno.land/x/access_token@1.0.0/mod.ts";
 import { logger } from "./util.ts";
-import { BufReader } from "https://deno.land/std@0.92.0/io/bufio.ts";
+import { BufReader, readLines } from "https://deno.land/std@0.92.0/io/bufio.ts";
 import { TextProtoReader } from "https://deno.land/std@0.92.0/textproto/mod.ts";
 import { keyAuth } from "./middleware.ts";
 
@@ -58,6 +58,8 @@ export async function invalidateToken(token:string)
             allLines += line + "\n";
         }
     }
+
+    allLines = allLines.trim();
 
 
     await Deno.writeFile('permenantKeys.txt', new TextEncoder().encode(allLines));

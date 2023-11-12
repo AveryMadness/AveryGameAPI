@@ -10,6 +10,8 @@ import { InitializeWebsocketServer } from "./wss/main.ts"
 import { TextProtoReader } from "https://deno.land/std@0.92.0/textproto/mod.ts";
 import { BufReader } from "https://deno.land/std@0.92.0/io/bufio.ts";
 import { readerFromStreamReader } from "https://deno.land/std@0.205.0/streams/mod.ts";
+import {existsSync} from "https://deno.land/std/fs/mod.ts";
+import { exists } from "https://deno.land/std@0.206.0/fs/exists.ts";
 
 
 
@@ -35,8 +37,10 @@ app.use(
 
 
 try {
+  
+const options = existsSync("permenantKeys.txt") ? { read: true } : { read: true, createNew: true, write: true}
 const tp = new TextProtoReader( new 
-BufReader(await Deno.open('permenantKeys.txt', { read: true})));
+BufReader(await Deno.open('permenantKeys.txt', options)));
 
 let line;
 while (line = await tp.readLine())
