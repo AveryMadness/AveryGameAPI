@@ -9,6 +9,28 @@ import { to } from "https://deno.land/x/optic@1.3.11/logger/profileMeasure.ts";
 export default async function() {
     const router = new Hono();
 
+    router.post("/news/deletePost", adminAuth, async (c) => {
+        const postData = await c.req.json();
+        const postId = postData["id"];
+
+        if (!postId)
+        {
+            return c.json({code: 400, message: "Invalid user parameters"}, 400);
+        }
+
+        const newsRef = doc(db, "news", postId);
+        const newsSnap = await getDoc(newsRef);
+
+        if (!newsSnap.exists())
+        {
+            return c.json({code: 404, message: `Post ${postId} not found.`}, 404);
+        }
+
+        await deleteDoc(newsRef);
+
+        return c.json({code: 200, message: "Success"});
+    })
+
     router.post("/news/createPost", adminAuth, async (c) => {
         const postData = await c.req.json();
         const content = postData["content"];
@@ -25,12 +47,28 @@ export default async function() {
 
         const newsRef = doc(db, "news", id);
 
+        let authorName = "";
+
+        const userRef = doc(db, "user", postData["username"]);
+        const userSnap = await getDoc(userRef);
+
+        const uid = userSnap.data()["id"];
+
+        if (uid == "1699465204298")
+        {
+            authorName == "System";
+        }
+        else
+        {
+            authorName = postData["username"];
+        }
+
         await setDoc(newsRef, {
             "content": content,
             "title": title,
             "photo": photo,
             "createdOn": creationData,
-            "author": postData["username"]
+            "author": authorName
         });
 
         return c.json({code: 200, message: "Success", id: id}, 200);
