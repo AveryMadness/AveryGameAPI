@@ -42,7 +42,7 @@ export function InitializeWebsocketServer()
     }
 
     wss.on("connection", function (ws: WebSocketClient) {
-        UpdateAllUserChats();
+        ws.send(JSON.stringify({payloadType: "updateChatMessages", payload: chatMessages}));
 
         ws.on("open", function () {
             //logger.info("client opened");
