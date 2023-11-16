@@ -2,7 +2,7 @@ import { Hono } from "https://deno.land/x/hono@v3.8.1/mod.ts";
 import { logger } from "../util.ts";
 import { keyAuth, adminAuth, adminKeyAuth, userpassAuth } from "../middleware.ts";
 import * as accountUtil from "../accountUtil.ts"
-import { doc, getDoc, setDoc, updateDoc } from "https://www.gstatic.com/firebasejs/9.8.1/firebase-firestore.js";
+import { QueryDocumentSnapshot, collection, doc, getDoc, getDocs, getDocsFromServer, query, setDoc, updateDoc, where } from "https://www.gstatic.com/firebasejs/9.8.1/firebase-firestore.js";
 import { db } from "../database.ts";
 
 
@@ -22,6 +22,33 @@ export default async function() {
         logger.info(currentGameVersion);
 
         return c.json({code: 200, message: "Success", correctVersion: (gameVersion == currentGameVersion) ?? false});
+    });
+
+    router.get("/getStats", keyAuth, async (c) => {
+        const userId = await c.req.header("user") ?? "";
+
+        const username = await accountUtil.getUsernameFromUserID(userId);
+
+        if ((username == null || username == ""))
+        {
+            return c.json({code: 400, message: "Invalid user parameters."}, 400);
+        }
+
+        const q = query(collection(db, "user", username, "stat"));
+
+        const retVal:Map<string, string> = new Map();
+        const querySnapshot = await getDocs(q);
+        querySnapshot.forEach((doc:QueryDocumentSnapshot) => {
+            retVal.set(doc.id, doc.data()["value"]);
+        }, null);
+
+        let retObj = JSON.parse("{}");
+
+        retVal.forEach((val, key) => {
+            retObj[key] = val;
+        });
+
+        return c.json({code: 200, message: "Success", stats: retObj});
     });
 
     router.get("/getStat", keyAuth, async (c) => {
