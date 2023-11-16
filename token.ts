@@ -9,10 +9,17 @@ export const tokens:Map<string, string> = new Map();
 export async function generateToken(userId:string, expire:boolean = true)
 {
 
-    const existingToken = getTokenFromUserId(userId);
-    if (existingToken != "")
+    const existingTokens = getTokenFromUserId(userId);
+    if (expire == false)
     {
-        await invalidateToken(existingToken);
+        return existingTokens[0];
+    }
+
+    if (existingTokens.length > 0)
+    {
+        existingTokens.forEach(async element => {
+            await invalidateToken(element);
+        });
     }
 
     const token = accessToken.generate("ags", userId);
@@ -65,13 +72,13 @@ export async function invalidateToken(token:string)
     await Deno.writeFile('permenantKeys.txt', new TextEncoder().encode(allLines));
 }
 
-export function getTokenFromUserId(userId:string)
+export function getTokenFromUserId(userId:string):string[]
 {
-    let retVal = "";
+    const retVal:string[] = [];
     tokens.forEach((id, token) => 
     {
         if (id == userId)
-            retVal = token;
+            retVal.push(token);
     });
 
     return retVal;

@@ -5,6 +5,8 @@ export let wss:WebSocketServer;
 
 const chatMessages:string[] = [];
 
+let numOnlineUsers = 0;
+
 function UpdateAllUserChats()
 {
     if (wss)
@@ -13,6 +15,18 @@ function UpdateAllUserChats()
 
         clients.forEach(client => {
             client.send(JSON.stringify({payloadType: "updateChatMessages", payload: chatMessages}));
+        });
+    }
+}
+
+function onNumOnlineUsersChanged()
+{
+    if (wss)
+    {
+        const clients = wss.clients;
+
+        clients.forEach(client => {
+            client.send(JSON.stringify({payloadType: "updateOnlineUsers", payload: numOnlineUsers}));
         });
     }
 }
@@ -28,6 +42,20 @@ export function InitializeWebsocketServer()
     }
 
     wss.on("connection", function (ws: WebSocketClient) {
+        UpdateAllUserChats();
+
+        ws.on("open", function () {
+            //logger.info("client opened");
+            //numOnlineUsers++;
+            //onNumOnlineUsersChanged();
+        });
+
+        ws.on("close", function() {
+            //logger.info("client closed");
+            //numOnlineUsers--;
+            //onNumOnlineUsersChanged();
+        });
+
         ws.on("message", function (message: string) {
 
             let json;
@@ -57,13 +85,17 @@ export function InitializeWebsocketServer()
             switch (payloadType)
             {
                 case "getChatMessages":
-                    
                     ws.send(JSON.stringify({payloadType: "getChatMessages", code: 200, message: "Success", payload: chatMessages}));
                     break;
+
                 case "sendChatMessage":
                     chatMessages.push(payload);
                     ws.send(JSON.stringify({payloadType: "sendChatMessage", code: 200, message: "Success"}));
                     UpdateAllUserChats();
+                    break;
+
+                case "getNumOnlineUsers":
+                    ws.send(JSON.stringify({payloadType: "getNumOnlineUsers", payload: numOnlineUsers}));
                     break;
             }       
         });

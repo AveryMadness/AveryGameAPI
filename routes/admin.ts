@@ -29,7 +29,8 @@ export default async function() {
             "content": content,
             "title": title,
             "photo": photo,
-            "createdOn": creationData
+            "createdOn": creationData,
+            "author": postData["username"]
         });
 
         return c.json({code: 200, message: "Success", id: id}, 200);

@@ -99,9 +99,9 @@ export const AdminKeyMiddleware = ():MiddlewareHandler => {
             return c.json({code: 400, message: "Invalid user parameters."})
         }
 
-        const userToken = token.getTokenFromUserId(userId);
+        const userTokens = token.getTokenFromUserId(userId);
 
-        if (userToken != authKey)
+        if (!userTokens.includes(authKey))
         {
             c.status(401);
             return c.json({code: 401, message: "Invalid or expired Authentication Key."});
@@ -155,9 +155,9 @@ export const AuthKeyMiddleware = ():MiddlewareHandler => {
             return c.json({code: 400, message: "Invalid user parameters."})
         }
 
-        const userToken = token.getTokenFromUserId(userId);
+        const userTokens = token.getTokenFromUserId(userId);
 
-        if (userToken != authKey)
+        if (!userTokens.includes(authKey))
         {
             c.status(401);
             return c.json({code: 401, message: "Invalid or expired Authentication Key."});

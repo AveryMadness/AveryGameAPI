@@ -1,16 +1,16 @@
-import "https://deno.land/std/dotenv/load.ts";
-import { Hono } from 'https://deno.land/x/hono/mod.ts' 
+import "https://deno.land/std@0.204.0/dotenv/load.ts";
+import { Hono } from "https://deno.land/x/hono@v3.8.1/mod.ts" 
 import { logger } from "./util.ts"
 import { auth, db } from "./database.ts"
 import { tokens } from "./token.ts";
 import { collection, doc, getDoc } from "https://www.gstatic.com/firebasejs/9.8.1/firebase-firestore.js";
-import { cors } from 'https://deno.land/x/hono/middleware.ts'
-import { serve } from "https://deno.land/std/http/server.ts";
+import { cors } from "https://deno.land/x/hono@v3.8.3/middleware.ts"
+import { serve } from "https://deno.land/std@0.204.0/http/server.ts";
 import { InitializeWebsocketServer } from "./wss/main.ts"
 import { TextProtoReader } from "https://deno.land/std@0.92.0/textproto/mod.ts";
 import { BufReader } from "https://deno.land/std@0.92.0/io/bufio.ts";
 import { readerFromStreamReader } from "https://deno.land/std@0.205.0/streams/mod.ts";
-import {existsSync} from "https://deno.land/std/fs/mod.ts";
+import {existsSync} from "https://deno.land/std@0.206.0/fs/mod.ts";
 import { exists } from "https://deno.land/std@0.206.0/fs/exists.ts";
 
 

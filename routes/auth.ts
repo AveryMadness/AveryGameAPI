@@ -14,8 +14,9 @@ export default async function() {
 
         const userId = postData["user"];
         const username = postData["username"];
+        const tokenToInvalidate = postData["token"]
 
-        if (!userId || !username)
+        if (!userId || !username || !tokenToInvalidate)
         {
             c.status(400);
             return c.json({
@@ -34,9 +35,9 @@ export default async function() {
         }
 
 
-        const authToken = token.getTokenFromUserId(userId);
+        const authTokens = token.getTokenFromUserId(userId);
         
-        if (authToken == "")
+        if (!authTokens.includes(tokenToInvalidate))
         {
             c.status(404);
             return c.json({
@@ -45,7 +46,7 @@ export default async function() {
             });
         }
 
-        token.invalidateToken(authToken);
+        token.invalidateToken(tokenToInvalidate);
         return c.json({error: 200, message: "Success"});
 
     });
