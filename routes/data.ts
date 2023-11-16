@@ -41,7 +41,7 @@ export default async function() {
         }
 
 
-        return c.json({code: 200, message: "Success", id: idChosen, post: {content: retObject.data()["content"], title: retObject.data()["title"], photo: retObject.data()["photo"]}});
+        return c.json({code: 200, message: "Success", id: idChosen, post: {content: retObject.data()["content"], title: retObject.data()["title"], photo: retObject.data()["photo"], author: retObject.data()["author"]}});
     });
 
     router.get("/news/:postId", async (c) => {
@@ -55,7 +55,7 @@ export default async function() {
             return c.json({code: 404, message: `Post ${postId} not found.`}, 404);
         }
 
-        return c.json({code: 200, message: "Success", post: {content: newsSnap.data()["content"], photo: newsSnap.data()["photo"], title: newsSnap.data()["title"]}});
+        return c.json({code: 200, message: "Success", post: {content: newsSnap.data()["content"], photo: newsSnap.data()["photo"], title: newsSnap.data()["title"], author: newsSnap.data()["author"]}});
     });
 
     
