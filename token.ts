@@ -10,7 +10,7 @@ export async function generateToken(userId:string, expire:boolean = true)
 {
 
     const existingTokens = getTokenFromUserId(userId);
-    if (expire == false)
+    if (expire == false && existingTokens.length > 0)
     {
         return existingTokens[0];
     }
