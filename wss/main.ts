@@ -41,6 +41,10 @@ export function InitializeWebsocketServer()
         logger.info(`Chat server listening at ws://localhost:${wsport}/`)
     }
 
+    wss.on("error", function(err:string) {
+        logger.error(err.toString());
+    });
+
     wss.on("connection", function (ws: WebSocketClient) {
         ws.send(JSON.stringify({payloadType: "updateChatMessages", payload: chatMessages}));
 
