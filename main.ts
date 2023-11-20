@@ -71,6 +71,10 @@ const abortController = new AbortController();
 
 InitializeWebsocketServer();
 
+app.get("/admin", async (c) => {
+  c.header("content-type", "text/html");
+  return c.body(await Deno.readFile("admin/index.html"));
+});
 
 
 serve(app.fetch, {
