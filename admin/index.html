@@ -217,6 +217,14 @@
 
         let userId = null;
 
+        const urlParams = new URLSearchParams(window.location.search);
+        const port = urlParams.get('port');
+
+        if (port == "")
+        {
+            alert("Backend port is none, specifiy port with ?port in the URL.");
+        }
+
         function promptCreateUser() {
             let username = prompt("Username");
             let password = prompt("Password");
