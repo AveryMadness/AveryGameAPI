@@ -2,10 +2,18 @@ import { Hono } from "https://deno.land/x/hono@v3.8.1/mod.ts";
 import * as hashLibrary from "../hashutil.ts"
 import { logger } from "../util.ts";
 import { db } from "../database.ts";
-import { collection, doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/9.8.1/firebase-firestore.js";
+import { collection, doc, getDoc, setDoc, updateDoc } from "https://www.gstatic.com/firebasejs/9.8.1/firebase-firestore.js";
 import * as accountUtil from "../accountUtil.ts"
 import { keyAuth, adminAuth, adminKeyAuth, userpassAuth } from "../middleware.ts";
 import * as token from "../token.ts";
+
+export const UserStatus = Object.freeze({
+    Offline: Symbol(0),
+    Online: Symbol(1),
+    Playing: Symbol(2),
+    Away: Symbol(3),
+    None: Symbol(-1)
+});
 
 export default async function() {
     const router = new Hono();
@@ -24,6 +32,65 @@ export default async function() {
 
     router.get("/game/getItem", async (c) => {
 
+    });
+
+    router.get("/getUserStatus/:userid", async (c) => {
+        const { userid } = c.req.param();
+
+        const username = await accountUtil.getUsernameFromUserID(userid);
+
+        if (!username || !userid)
+        {
+            return c.json({code: 400, message: "Invalid user parameters"}, 400);
+        }
+
+        const userRef = doc(db, "user", username);
+        const userSnap = await getDoc(userRef);
+
+        let status = await userSnap.data()["status"];
+
+        if (isNaN(status) || status > 3 || status < 0)
+        {
+            status = UserStatus.None;
+        }
+
+        return c.json({code: 200, message: "Success", status: status}, 200);
+    });
+
+    router.post("/setUserStatus", keyAuth, async (c) => {
+        const postData = await c.req.json();
+        const userId = postData["user"];
+        const status = postData["status"];
+
+        if (isNaN(status) || status > 3 || status < 0)
+        {
+            return c.json({code: 400, message: "Invalid user parameters."}, 400);
+        }
+
+        const username = await accountUtil.getUsernameFromUserID(userId);
+
+        const userRef = doc(db, "user", username);
+        
+        await updateDoc(userRef, {
+            status: status,
+        });
+
+        return c.json({code: 200, message: "Success"});
+    });
+
+    router.post("/authenticateAuthKey", async (c) => {
+        const postData = await c.req.json();
+        const userId = postData["user"];
+        const key = postData["key"];
+
+        const tok = await token.getTokenFromUserId(userId);
+
+        if (!tok)
+        {
+            return c.json({code: 403, message: "Unauthorized"}, 403);
+        }
+
+        return c.json({code: 200, message: "Success"}, 200);
     });
 
     router.post("/authenticateAdminKey", adminKeyAuth, async (c) => {

@@ -12,6 +12,25 @@ export default async function() {
         return c.text("Not limited!");
     });
 
+    router.get("/flags/:flagId", async (c) => {
+        const { flagId } = c.req.param();
+
+        if (!flagId)
+        {
+            return c.json({code: 400, message: "Invalid user parameters."}, 400);
+        }
+
+        const flagRef = doc(db, "flags", flagId);
+        const flagSnap = await getDoc(flagRef);
+
+        if (!flagSnap.exists())
+        {
+            return c.json({code: 404, message: `Flag ${flagId} not found.`}, 404);
+        }
+
+        return c.json({code: 200, message: "Success", value: flagSnap.data()["value"]}, 200);
+    });
+
     router.get("/news/getRecentPost", async (c) => {
         const q = query(collection(db, "news"));
 
@@ -29,9 +48,6 @@ export default async function() {
                 retObject = doc;
                 mostRecentDate = new Date(parseInt(doc.data()["createdOn"]));
                 idChosen = doc.id;
-            }
-            else
-            {
             }
         }, null);
 

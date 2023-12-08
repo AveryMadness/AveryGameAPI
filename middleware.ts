@@ -5,13 +5,14 @@ import { checkHashedPassword } from "./hashutil.ts";
 import * as token from "./token.ts";
 import { logger } from "./util.ts";
 import * as accountUtil from "./accountUtil.ts"
+import auth from "./routes/auth.ts";
 
 const rateLimits:string[] = [];
 
 export const RateLimitedMiddleware = ():MiddlewareHandler => {
     return async (c, next) => {
-        const hostName = await accountUtil.getRemoteAddr(c.req);
-        const address = hostName;
+        const {hostname, port, transport} = c.env.remoteAddr;
+        const address = hostname;
         
         if (address == "")
         {
@@ -99,9 +100,9 @@ export const AdminKeyMiddleware = ():MiddlewareHandler => {
             return c.json({code: 400, message: "Invalid user parameters."})
         }
 
-        const userTokens = token.getTokenFromUserId(userId);
+        const userTokens = await token.getTokenFromUserId(userId);
 
-        if (!userTokens.includes(authKey))
+        if (userTokens != authKey)
         {
             c.status(401);
             return c.json({code: 401, message: "Invalid or expired Authentication Key."});
@@ -155,9 +156,9 @@ export const AuthKeyMiddleware = ():MiddlewareHandler => {
             return c.json({code: 400, message: "Invalid user parameters."})
         }
 
-        const userTokens = token.getTokenFromUserId(userId);
+        const userTokens = await token.getTokenFromUserId(userId);
 
-        if (!userTokens.includes(authKey))
+        if (userTokens != authKey)
         {
             c.status(401);
             return c.json({code: 401, message: "Invalid or expired Authentication Key."});

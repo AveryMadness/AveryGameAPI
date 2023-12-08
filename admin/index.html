@@ -92,11 +92,15 @@
             box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
             text-align: center;
         }
+        
+        * {
+            box-sizing: border-box;
+        }
 
         #login-form {
-            padding: 20px;
-            box-sizing: border-box;
-            display: inline-block; /* Display the form as an inline-block */
+         padding: 40px; /* Increase the padding to provide more space */
+         box-sizing: border-box;
+         display: inline-block;
         }
 
         #create-user-container {
@@ -209,6 +213,7 @@
     <script>
         // Sample data for users and their properties
         let users = {};
+        const apiUrl = window.location.protocol + "//" + window.location.hostname + ":" + window.location.port;
 
        // checkKey();
 
@@ -216,14 +221,6 @@
         let currentUser = null;
 
         let userId = null;
-
-        const urlParams = new URLSearchParams(window.location.search);
-        const port = urlParams.get('port');
-
-        if (port == "")
-        {
-            alert("Backend port is none, specifiy port with ?port in the URL.");
-        }
 
         function promptCreateUser() {
             let username = prompt("Username");
@@ -240,11 +237,9 @@
             {
                 const username = document.getElementById("username").value;
                 const password = document.getElementById("password").value;
-                const urlParams = new URLSearchParams(window.location.search);
-                const port = urlParams.get('port');
-                let setAdminUrl = "http://127.0.0.1:" + port + "/api/v1/admin/deleteUser";
+                let deleteUserUrl = apiUrl + "/api/v1/admin/deleteUser";
                 let data = {"username": username, "password": password, "toDelete": userid};
-                let response = await fetch(setAdminUrl, {
+                let response = await fetch(deleteUserUrl, {
                     method: "POST", // *GET, POST, PUT, DELETE, etc.
                     mode: "cors", // no-cors, *cors, same-origin
                     cache: "no-cache", // *default, no-cache, reload, force-cache, only-if-cached
@@ -315,9 +310,7 @@
                     user.banned = document.getElementById("banned-checkbox").checked;
                     user.betaTester = document.getElementById("beta-tester-checkbox").checked;
 
-                    const urlParams = new URLSearchParams(window.location.search);
-                    const port = urlParams.get('port');
-                    let setAdminUrl = "http://127.0.0.1:" + port + "/api/v1/admin/setAdmin";
+                    let setAdminUrl = apiUrl + "/api/v1/admin/setAdmin";
                     let data = {"username": username, "password": password, "user": user.id, "admin": user.admin};
 
                     let response = await fetch(setAdminUrl, {
@@ -343,10 +336,10 @@
                         return;
                     }
 
-                    setAdminUrl = "http://127.0.0.1:" + port + "/api/v1/admin/setBetaTester";
+                    const setBetaTester = apiUrl + "/api/v1/admin/setBetaTester";
                     data = {"username": username, "password": password, "user": user.id, "betaTester": user.betaTester};
 
-                    response = await fetch(setAdminUrl, {
+                    response = await fetch(setBetaTester, {
                         method: "POST", // *GET, POST, PUT, DELETE, etc.
                         mode: "cors", // no-cors, *cors, same-origin
                         cache: "no-cache", // *default, no-cache, reload, force-cache, only-if-cached
@@ -369,10 +362,10 @@
                         return;
                     }
 
-                    setAdminUrl = "http://127.0.0.1:" + port + "/api/v1/admin/setBanned";
+                    const setBannedUrl = apiUrl + "/api/v1/admin/setBanned";
                     data = {"username": username, "password": password, "user": user.id, "banned": user.banned};
 
-                    response = await fetch(setAdminUrl, {
+                    response = await fetch(setBannedUrl, {
                         method: "POST", // *GET, POST, PUT, DELETE, etc.
                         mode: "cors", // no-cors, *cors, same-origin
                         cache: "no-cache", // *default, no-cache, reload, force-cache, only-if-cached
@@ -423,10 +416,9 @@
             const username = document.getElementById("username").value;
             const password = document.getElementById("password").value;
             
-            const urlParams = new URLSearchParams(window.location.search);
-            const port = urlParams.get('port');
+            
             const data = {"username": username, "password": password, "user": userId};
-            const url = "http://127.0.0.1:" + port + "/api/v1/authentication/createAuthToken";
+            const url = apiUrl + "/api/v1/authentication/createAuthToken";
 
             const response = await fetch(url, {
                 method: "POST",
@@ -461,10 +453,9 @@
             const password = document.getElementById("password").value;
 
             let success = false;
-            const urlParams = new URLSearchParams(window.location.search);
-            const port = urlParams.get('port');
+            
             let data = {"username": username, "password": password};
-            let url = "http://127.0.0.1" + port + "/api/v1/account/authenticateAdmin";
+            let url = apiUrl + "/api/v1/account/authenticateAdmin";
 
             //const { key, userId } = getCookie();
             //alert(key);
@@ -501,9 +492,8 @@
 
         async function addUsers()
         {
-            const urlParams = new URLSearchParams(window.location.search);
-            const port = urlParams.get('port');
-            const url = "http://127.0.0.1:" + port + "/api/v1/data/getUsers";
+            
+            const url = apiUrl + "/api/v1/data/getUsers";
 
             const response = await fetch(url);
             const json = await response.json();
@@ -533,9 +523,8 @@
 
         async function createUser(username, password, profilePhoto)
         {
-            const urlParams = new URLSearchParams(window.location.search);
-            const port = urlParams.get('port');
-            let url = "http://127.0.0.1:" + port + "/api/v1/account/createUser";
+            
+            let url = apiUrl + "/api/v1/account/createUser";
 
             const data = {"username": username, "password": password, "profilePhoto": profilePhoto};
 
@@ -570,9 +559,8 @@
         {
             let success = false;
 
-            const urlParams = new URLSearchParams(window.location.search);
-            const port = urlParams.get('port');
-            let url = "http://127.0.0.1:" + port + "/api/v1/account/authenticateAdminKey";
+            
+            let url = apiUrl + "/api/v1/account/authenticateAdminKey";
 
             const { key, userId }= getCookie();
 

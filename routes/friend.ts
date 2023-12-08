@@ -24,7 +24,7 @@ export default async function() {
             returnBool = Boolean(returnID);
         }
 
-        const { success, friends } = await accountUtil.getFriendsFromUserID(userId, returnBool);
+        const { success, friends } = await accountUtil.getFriendsFromUserID(userId);
 
         if (!success)
         {

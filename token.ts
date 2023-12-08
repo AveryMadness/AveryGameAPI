@@ -3,43 +3,31 @@ import { logger } from "./util.ts";
 import { BufReader, readLines } from "https://deno.land/std@0.92.0/io/bufio.ts";
 import { TextProtoReader } from "https://deno.land/std@0.92.0/textproto/mod.ts";
 import { keyAuth } from "./middleware.ts";
+import { getUsernameFromUserID } from "./accountUtil.ts";
+import { doc, getDoc, updateDoc } from "https://www.gstatic.com/firebasejs/9.8.1/firebase-firestore.js";
+import { db } from "./database.ts";
 
 export const tokens:Map<string, string> = new Map();
 
-export async function generateToken(userId:string, expire:boolean = true)
+export async function generateToken(userId:string, force:boolean = false)
 {
+    const username = await getUsernameFromUserID(userId);
 
-    const existingTokens = getTokenFromUserId(userId);
-    if (expire == false && existingTokens.length > 0)
-    {
-        return existingTokens[0];
-    }
+    const userRef = doc(db, "user", username);
+    const userSnap = await getDoc(userRef);
 
-    if (existingTokens.length > 0)
+    const token = userSnap.data()["token"];
+
+    if (!token || force)
     {
-        existingTokens.forEach(async element => {
-            await invalidateToken(element);
+        const newToken = accessToken.generate("ags", userId);
+        updateDoc(userRef, {
+            token: newToken
         });
+
+        return newToken;
     }
 
-    const token = accessToken.generate("ags", userId);
-    
-    tokens.set(token, userId);
-    if (expire)
-        setTimeout(() => invalidateToken(token), parseInt(Deno.env.get("TOKEN_LIFESPAN") ?? "180") * 1000);
-    else
-    {
-        const file = Deno.readFileSync('permenantKeys.txt');
-        const textDecoder = new TextDecoder();
-        let fileStr = textDecoder.decode(file);
-
-        fileStr += "\n" + token + ";" + userId;
-
-        const textEncoder = new TextEncoder();
-        const fileToWrite = textEncoder.encode(fileStr);
-
-        Deno.writeFileSync('permenantKeys.txt', fileToWrite);
-    }
     return token;
 }
 
@@ -72,14 +60,12 @@ export async function invalidateToken(token:string)
     await Deno.writeFile('permenantKeys.txt', new TextEncoder().encode(allLines));
 }
 
-export function getTokenFromUserId(userId:string):string[]
+export async function getTokenFromUserId(userId:string):Promise<string>
 {
-    const retVal:string[] = [];
-    tokens.forEach((id, token) => 
-    {
-        if (id == userId)
-            retVal.push(token);
-    });
-
-    return retVal;
+    
+    const username = await getUsernameFromUserID(userId);
+    const userRef = doc(db, "user", username);
+    const userSnap = getDoc(userRef);
+    
+    return (await userSnap).data()["token"];
 }

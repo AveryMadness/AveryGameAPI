@@ -33,32 +33,7 @@ app.use(
   cors({
     origin: "*",
   })
-)
-
-
-try {
-  
-const options = existsSync("permenantKeys.txt") ? { read: true } : { read: true, createNew: true, write: true}
-const tp = new TextProtoReader( new 
-BufReader(await Deno.open('permenantKeys.txt', options)));
-
-let line;
-while (line = await tp.readLine())
-{
-  if (line == "")
-    continue;
-  const keyandid = line.split(";");
-  tokens.set(keyandid[0], keyandid[1]);
-}
-}
-catch (exception)
-{
-  logger.error(exception);
-}
-finally
-{
-  logger.info("Initialized linked keys.");
-}
+);
   
 app.route("/api/v1/account", await (await import("./routes/account.ts")).default());
 app.route("/api/v1/authentication", await (await import("./routes/auth.ts")).default());

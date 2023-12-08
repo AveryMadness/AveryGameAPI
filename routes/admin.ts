@@ -9,6 +9,25 @@ import { to } from "https://deno.land/x/optic@1.3.11/logger/profileMeasure.ts";
 export default async function() {
     const router = new Hono();
 
+    router.post("/flags/setEventFlag", adminAuth, async (c) => {
+        const postData = await c.req.json();
+        const flag = postData["flag"];
+        const value = postData["value"];
+
+        if (!flag || (!value && isNaN(value)))
+        {
+            return c.json({code: 400, message: "Invalid user parameters"}, 400);
+        }
+
+        const flagsRef = doc(db, "flags", flag);
+
+        await setDoc(flagsRef, {
+            value: value
+        });
+
+        return c.json({code: 200, message: "Success"}, 400);
+    });
+
     router.post("/news/deletePost", adminAuth, async (c) => {
         const postData = await c.req.json();
         const postId = postData["id"];
