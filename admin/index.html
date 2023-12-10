@@ -222,6 +222,37 @@
 
         let userId = null;
 
+        if (localStorage.getItem("key") != null)
+        {
+            tryLogin();
+        }
+
+        async function tryLogin()
+        {
+            let authkeyUrl = apiUrl + "/api/v1/account/authenticateAuthKey";
+            let data = {"user": localStorage.getItem("user"), "key": localStorage.getItem("key")};
+            let response = await fetch(authkeyUrl, {
+                method: "POST", // *GET, POST, PUT, DELETE, etc.
+                mode: "cors", // no-cors, *cors, same-origin
+                cache: "no-cache", // *default, no-cache, reload, force-cache, only-if-cached
+                credentials: "same-origin", // include, *same-origin, omit
+                headers: {
+                    "Content-Type": "application/json",
+                    // 'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                redirect: "follow", // manual, *follow, error
+                referrerPolicy: "no-referrer", // no-referrer, *no-referrer-when-downgrade, origin, origin-when-cross-origin, same-origin, strict-origin, strict-origin-when-cross-origin, unsafe-url
+                body: JSON.stringify(data), // body data type must match "Content-Type" header
+            });
+
+            if (response.status == 200)
+            {
+                document.getElementById("login-form").style.display = "none";
+                await addUsers();
+                document.getElementById("user-list").style.display = "block";
+            }
+        }
+
         function promptCreateUser() {
             let username = prompt("Username");
             let password = prompt("Password");
@@ -395,13 +426,12 @@
         }
 
         function setCookie(key, userId) {            
-            document.cookie = "key=" + key + " ;userId=" + userId;
+            window.localStorage.setItem("key", key);
+            window.localStorage.setItem("user", userId);
         }
 
         function getCookie(name) {
-            const value = `; ${document.cookie}`;
-            const parts = value.split(`; ${name}=`);
-            if (parts.length === 2) return parts.pop().split(';').shift();
+            return window.localStorage.getItem(name);
          }
 
         // Function to go back to user selection
@@ -481,7 +511,7 @@
             {
                 setCookie(json["key"], json["userId"]);
                 userId = json["userId"];
-                setInterval(async function () { await getNewKey() }, 180000);
+                //setInterval(async function () { await getNewKey() }, 180000);
                 document.getElementById("login-form").style.display = "none";
                 await addUsers();
                 document.getElementById("user-list").style.display = "block";
