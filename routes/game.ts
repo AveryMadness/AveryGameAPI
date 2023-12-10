@@ -4,7 +4,12 @@ import { keyAuth, adminAuth, adminKeyAuth, userpassAuth } from "../middleware.ts
 import * as accountUtil from "../accountUtil.ts"
 import { QueryDocumentSnapshot, collection, doc, getDoc, getDocs, getDocsFromServer, query, setDoc, updateDoc, where } from "https://www.gstatic.com/firebasejs/9.8.1/firebase-firestore.js";
 import { db } from "../database.ts";
+import * as path from "https://deno.land/std@0.208.0/path/mod.ts";
+import { dirname } from "https://deno.land/std@0.206.0/path/dirname.ts";
 
+async function getJson(filePath: string) {
+    return JSON.parse(await Deno.readTextFile(filePath));
+}
 
 export default async function() {
     const router = new Hono();
@@ -20,6 +25,42 @@ export default async function() {
         }
         
         return c.json({code: 200, message: "Success", correctVersion: (gameVersion == currentGameVersion) ?? false});
+    });
+
+    router.get("/playlist/:playlistId", async (c) => {
+        const { playlistId } = c.req.param();
+
+        if (!playlistId)
+        {
+            return c.json({code: 400, message: "Invalid user parameters."}, 400);
+        }
+
+        const json = await getJson(path.join(".", "data", "playlist.json"));
+
+        if (!json[playlistId] || json[playlistId]["exposed"] == false)
+        {
+            return c.json({code: 404, message: `Playlist ${playlistId} not found.`}, 404);
+        }
+
+        const playlist = json[playlistId];
+
+        return c.json({code: 200, message: "Success", playlist: {name: playlist["name"], description: playlist["description"], recommendedLevel: playlist["recommendedLevel"], minimumLevel: playlist["minimumLevel"] ?? 0}});
+    });
+
+    router.get("/getPlaylists", async (c) => {
+        const json = await getJson(path.join(".", "data", "playlist.json"));
+
+        const playlists:string[] = [];
+
+        for (let i = 0; i < Object.keys(json).length; i++)
+        {
+            if (json[Object.keys(json)[i]]["exposed"] == false)
+                continue;
+
+            playlists.push(Object.keys(json)[i]);
+        }
+
+        return c.json({code: 200, message: "Success", playlists: playlists});
     });
 
     router.get("/getStats", keyAuth, async (c) => {

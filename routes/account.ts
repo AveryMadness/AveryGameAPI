@@ -34,7 +34,7 @@ export default async function() {
 
     });
 
-    router.get("/getUserStatus/:userid", async (c) => {
+    router.get("/status/:userid", async (c) => {
         const { userid } = c.req.param();
 
         const username = await accountUtil.getUsernameFromUserID(userid);
@@ -51,7 +51,7 @@ export default async function() {
 
         if (isNaN(status) || status > 3 || status < 0)
         {
-            status = UserStatus.None;
+            status = -1;
         }
 
         return c.json({code: 200, message: "Success", status: status}, 200);

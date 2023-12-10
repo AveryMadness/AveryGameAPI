@@ -1,0 +1,9 @@
+{
+    "playlist_default": {
+        "name": "Default Playlist",
+        "description": "Default Playlist",
+        "recommendedLevel": 1,
+        "minimumLevel": 1,
+        "exposed": true
+    }
+}

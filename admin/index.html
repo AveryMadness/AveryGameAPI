@@ -229,6 +229,7 @@
 
         async function tryLogin()
         {
+            document.getElementById("login-button").disabled = true;
             let authkeyUrl = apiUrl + "/api/v1/account/authenticateAuthKey";
             let data = {"user": localStorage.getItem("user"), "key": localStorage.getItem("key")};
             let response = await fetch(authkeyUrl, {
@@ -248,9 +249,13 @@
             if (response.status == 200)
             {
                 document.getElementById("login-form").style.display = "none";
+                document.getElementById("login-button").disabled = false;
                 await addUsers();
                 document.getElementById("user-list").style.display = "block";
+                return;
             }
+
+            document.getElementById("login-button").disabled = false;
         }
 
         function promptCreateUser() {
@@ -270,6 +275,7 @@
                 const password = document.getElementById("password").value;
                 let deleteUserUrl = apiUrl + "/api/v1/admin/deleteUser";
                 let data = {"username": username, "password": password, "toDelete": userid};
+                document.getElementById("login-button").disabled = true;
                 let response = await fetch(deleteUserUrl, {
                     method: "POST", // *GET, POST, PUT, DELETE, etc.
                     mode: "cors", // no-cors, *cors, same-origin
@@ -290,10 +296,12 @@
                 {
                     addUsers();
                     goBack();
+                    document.getElementById("login-button").disabled = false;
                 }
                 else
                 {
                     alert("An error has occurred. " + json["message"]);
+                    document.getElementById("login-button").disabled = false;
                 }
             }
             else
@@ -344,6 +352,8 @@
                     let setAdminUrl = apiUrl + "/api/v1/admin/setAdmin";
                     let data = {"username": username, "password": password, "user": user.id, "admin": user.admin};
 
+                    document.getElementById("login-button").disabled = true;
+
                     let response = await fetch(setAdminUrl, {
                         method: "POST", // *GET, POST, PUT, DELETE, etc.
                         mode: "cors", // no-cors, *cors, same-origin
@@ -364,8 +374,10 @@
                     if (response.status != 200)
                     {
                         alert(`Saving user failed. Error: ${errorMessage}`);
+                        document.getElementById("login-button").disabled = false;
                         return;
                     }
+
 
                     const setBetaTester = apiUrl + "/api/v1/admin/setBetaTester";
                     data = {"username": username, "password": password, "user": user.id, "betaTester": user.betaTester};
@@ -390,6 +402,7 @@
                     if (response.status != 200)
                     {
                         alert(`Saving user failed. Error: ${errorMessage}`);
+                        document.getElementById("login-button").disabled = false;
                         return;
                     }
 
@@ -416,10 +429,12 @@
                     if (response.status == 200)
                     {
                         alert("User properties saved.");
+                        document.getElementById("login-button").disabled = false;
                     }
                     else
                     {
                         alert(`Saving user failed. Error: ${errorMessage}`);
+                        document.getElementById("login-button").disabled = false;
                     }
                 }
             }
@@ -490,6 +505,7 @@
             //const { key, userId } = getCookie();
             //alert(key);
 
+            document.getElementById("login-button").disabled = true;
             const response = await fetch(url, {
                 method: "POST",
                 mode: "cors",
@@ -515,8 +531,10 @@
                 document.getElementById("login-form").style.display = "none";
                 await addUsers();
                 document.getElementById("user-list").style.display = "block";
+                document.getElementById("login-button").disabled = false;
             } else {
                 alert(`Login failed. Error: ${errorMessage}`);
+                document.getElementById("login-button").disabled = false;
             }
         }
 
@@ -558,6 +576,7 @@
 
             const data = {"username": username, "password": password, "profilePhoto": profilePhoto};
 
+            document.getElementById("login-button").disabled = true;
             const response = await fetch(url, {
                 method: "POST",
                 mode: "cors",
@@ -578,10 +597,12 @@
             if (!success)
             {
                 alert(`Failed to create user. Error: ${errorMessage}`);
+                document.getElementById("login-button").disabled = false;
                 return;
             }
 
             alert("Created user!");
+            document.getElementById("login-button").disabled = false;
             addUsers();
         }
 
