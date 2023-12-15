@@ -25,17 +25,17 @@ export default async function() {
 
         if (!contentId)
         {
-            return c.json({code: 400, message: "Invalid user parameters."});
+            return c.json({code: 400, message: "Invalid user parameters."}, 400);
         }
 
         if (!existsSync(path.join(".", "data", `${contentId}.json`)))
         {
-            return c.json({code: 404, message: `Content path ${contentId} not found.`});
+            return c.json({code: 404, message: `Content path ${contentId} not found.`}, 404);
         }
 
         const json = await getJson(path.join(".", "data", `${contentId}.json`));
 
-        return c.json({code: 200, message: "Success", content: json});
+        return c.json({code: 200, message: "Success", content: json}, 200);
     });
 
     router.get("/flags/:flagId", async (c) => {
