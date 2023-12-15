@@ -4,12 +4,38 @@ import { db } from "../database.ts";
 import { logger } from "../util.ts";
 import { ratelimitAuth } from "../middleware.ts";
 import * as accountUtil from "../accountUtil.ts";
+import * as path from "https://deno.land/std@0.208.0/path/mod.ts";
+import {existsSync} from "https://deno.land/std/fs/mod.ts";
+
+
+
+async function getJson(filePath: string) {
+    return JSON.parse(await Deno.readTextFile(filePath));
+}
 
 export default async function() {
     const router = new Hono();
 
     router.get("/test", ratelimitAuth, async (c) => {
         return c.text("Not limited!");
+    });
+
+    router.get("/content/:contentId", async (c) => {
+        const { contentId } = c.req.param();
+
+        if (!contentId)
+        {
+            return c.json({code: 400, message: "Invalid user parameters."});
+        }
+
+        if (!existsSync(path.join(".", "data", `${contentId}.json`)))
+        {
+            return c.json({code: 404, message: `Content path ${contentId} not found.`});
+        }
+
+        const json = await getJson(path.join(".", "data", `${contentId}.json`));
+
+        return c.json({code: 200, message: "Success", content: json});
     });
 
     router.get("/flags/:flagId", async (c) => {
