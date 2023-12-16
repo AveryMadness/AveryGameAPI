@@ -5,5 +5,19 @@
         "recommendedLevel": 1,
         "minimumLevel": 1,
         "exposed": true
+    },
+    "playlist_totck": {
+        "name": "Tomb of the Crypt King",
+        "description": "Enter the mythical tomb of Krernor, and attempt to recover it's fortune.",
+        "recommendedLevel": 15,
+        "minimumLevel": 5,
+        "exposed": true
+    },
+    "playlist_totck_hard": {
+        "name": "Tomb of the Crypt King (Hard)",
+        "description": "Enter the mythical tomb of Krernor, and attempt to recover it's fortune.",
+        "recommendedLevel": 30,
+        "minimumLevel": 20,
+        "exposed": false
     }
 }
