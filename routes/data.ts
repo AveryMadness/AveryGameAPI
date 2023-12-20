@@ -34,6 +34,10 @@ export default async function() {
         }
 
         const json = await getJson(path.join(".", "data", `${contentId}.json`));
+        if (!json.contentPage)
+        {
+            return c.json({code: 404, message: `Content path ${contentId} does not contain content.`});
+        }
 
         return c.json({code: 200, message: "Success", content: json}, 200);
     });

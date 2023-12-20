@@ -1,4 +1,4 @@
-import { DocumentReference, Query, QueryDocumentSnapshot, collection, doc, getDoc, getDocs, query, setDoc, updateDoc, where } from "https://www.gstatic.com/firebasejs/9.8.1/firebase-firestore.js";
+import { DocumentReference, DocumentSnapshot, Query, QueryDocumentSnapshot, collection, doc, getDoc, getDocs, query, setDoc, updateDoc, where } from "https://www.gstatic.com/firebasejs/9.8.1/firebase-firestore.js";
 import { db } from "./database.ts";
 import { logger } from "./util.ts";
 import { HonoRequest } from "https://deno.land/x/hono@v3.8.1/mod.ts";
@@ -59,12 +59,12 @@ export async function getFriendsFromUserID(userId:string)
         return {success: false, friends: []};
     }
 
-    const q = query(collection(db, "user", username, "friends"), where("status", "==", "ACCEPTED"));
+    const q = collection(db, "user", username, "friends");
     const retVal:object[] = [];
 
     const querySnapshot = await getDocs(q);
-    querySnapshot.forEach((doc:QueryDocumentSnapshot) => {
-        retVal.push(doc.id);
+    querySnapshot.forEach((doc:DocumentSnapshot) => {
+        retVal.push({id: doc.id, pending: doc.data()["status"] == "PENDING"});
     }, null);
 
     return {success: true, friends: retVal};

@@ -1,5 +1,6 @@
 {
     "featured": {
         "playlists": ["playlist_default", "playlist_totck"]
-    }
+    },
+    "contentPage": true
 }
