@@ -223,7 +223,7 @@ export default async function() {
                 if (useragent?.includes("AveryGame/"))
                     shouldKeyExpire = false;
                 c.status(200);
-                const key = await token.generateToken(docSnap.data()["id"], shouldKeyExpire);
+                const key = await token.generateToken(docSnap.data()["id"]);
                 return c.json({code: 200, message: "Success", key: key, userId: docSnap.data()["id"]});
             }
             else

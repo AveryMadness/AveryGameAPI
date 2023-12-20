@@ -1,5 +1,6 @@
 import { WebSocketClient, WebSocketServer } from "https://deno.land/x/websocket@v0.1.4/mod.ts";
 import { logger } from "../util.ts";
+import { getUsernameFromUserID } from "../accountUtil.ts";
 
 export let wss:WebSocketServer;
 
@@ -19,6 +20,36 @@ function UpdateAllUserChats()
     }
 }
 
+const cachedUsernames:Map<string, string> = new Map<string, string>();
+async function replaceUserID(string:string):Promise<string>
+{
+    if (string.includes("userid:"))
+    {
+        let retVal = string;
+        const split = retVal.split("userid:");
+        let userid = split[1];
+        userid = userid.split("]")[0];
+        if (cachedUsernames.has(userid))
+        {
+            return retVal.replace("userid: " + userid, cachedUsernames.get(userid) ?? "");
+        }
+        
+        const username = await getUsernameFromUserID(userid);
+
+        if (!username)
+        {
+            return string;
+        }
+
+        cachedUsernames.set(userid, username);
+
+        retVal = retVal.replace("userid:" + userid, username);
+        return retVal;
+    }
+    
+    return string;
+}
+
 function onNumOnlineUsersChanged()
 {
     if (wss)
@@ -33,7 +64,8 @@ function onNumOnlineUsersChanged()
 
 export function InitializeWebsocketServer()
 {
-    const wsport:number = parseInt(Deno.env.get("WebSocketPort") ?? "8080") ?? 8080;
+    const envName = Deno.args.includes("-dev") ? "DEV_WebSocketPort" : "WebSocketPort";
+    const wsport:number = parseInt(Deno.env.get(envName) ?? "3000") ?? 3000;
     wss = new WebSocketServer(wsport);
 
     if (wss != null)
@@ -60,7 +92,7 @@ export function InitializeWebsocketServer()
             //onNumOnlineUsersChanged();
         });
 
-        ws.on("message", function (message: string) {
+        ws.on("message", async function (message: string) {
 
             let json;
             try {
@@ -93,10 +125,14 @@ export function InitializeWebsocketServer()
                     break;
 
                 case "sendChatMessage":
-                    chatMessages.push(payload);
+                {
+                    let message = payload;
+                    message = await replaceUserID(payload);
+                    chatMessages.push(message);
                     ws.send(JSON.stringify({payloadType: "sendChatMessage", code: 200, message: "Success"}));
                     UpdateAllUserChats();
                     break;
+                }
 
                 case "getNumOnlineUsers":
                     ws.send(JSON.stringify({payloadType: "getNumOnlineUsers", payload: numOnlineUsers}));

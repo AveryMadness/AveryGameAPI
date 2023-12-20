@@ -11,7 +11,7 @@ export default async function() {
 
     router.post("/flags/setEventFlag", adminAuth, async (c) => {
         const postData = await c.req.json();
-        const flag = postData["flag"];
+        const flag = postData.flag;
         const value = postData["value"];
 
         if (!flag || (!value && isNaN(value)))
@@ -25,7 +25,7 @@ export default async function() {
             value: value
         });
 
-        return c.json({code: 200, message: "Success"}, 400);
+        return c.json({code: 200, message: "Success"}, 200);
     });
 
     router.post("/news/deletePost", adminAuth, async (c) => {

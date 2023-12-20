@@ -17,7 +17,7 @@ export default async function() {
     const currentGameVersion = Deno.env.get("GAME_VERSION") ?? "0.25.0";
 
     router.get("/checkGameVersion", async (c) => {
-        const gameVersion = await c.req.header("version");
+        const gameVersion = await c.req.query("version");
 
         if (!gameVersion)
         {

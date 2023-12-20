@@ -51,11 +51,13 @@ app.get("/admin", async (c) => {
   return c.body(await Deno.readFile("admin/index.html"));
 });
 
-
+const envName = Deno.args.includes("-dev") ? "DEV_PORT" : "PORT";
 serve(app.fetch, {
   signal: abortController.signal,
-  port: parseInt(Deno.env.get("PORT") ?? "8080"),
+  port: parseInt(Deno.env.get(envName) ?? "8000"),
 });
 
-app.get('/', (c) => c.text('Hello Deno!'));
+app.get('/', async (c) => {
+  return c.json({code: 200, message: "Success"});
+});
 

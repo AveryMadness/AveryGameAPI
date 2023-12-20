@@ -18,8 +18,6 @@ export default async function() {
             return c.json({code: 400, message: "Invalid user parameters"}, 400);
         }
 
-        logger.info(`Key: ${key}`);
-
         const users = collection(db, "user");
 
         let returnVal = "";
