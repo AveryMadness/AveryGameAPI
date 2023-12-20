@@ -32,6 +32,5 @@ export const app = initializeApp({
 });
 export const db = initializeFirestore(app, {
   experimentalForceLongPolling: true,
-  useFetchStreams: false
 });
 export const auth = getAuth(app);
