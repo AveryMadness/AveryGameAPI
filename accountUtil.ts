@@ -64,7 +64,7 @@ export async function getFriendsFromUserID(userId:string)
 
     const querySnapshot = await getDocs(q);
     querySnapshot.forEach((doc:DocumentSnapshot) => {
-        retVal.push({id: doc.id, pending: doc.data()["status"] == "PENDING"});
+        retVal.push({id: doc.id, pending: doc.data()["status"] == "PENDING", sbna: doc.data()["status"] == "SENT"});
     }, null);
 
     return {success: true, friends: retVal};
