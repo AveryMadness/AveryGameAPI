@@ -4,6 +4,7 @@
         "description": "Default Playlist",
         "recommendedLevel": 1,
         "minimumLevel": 1,
+        "assetPath": "/Game/Playlist/playlist_default.playlist_default",
         "exposed": true
     },
     "playlist_totck": {
@@ -11,6 +12,7 @@
         "description": "Enter the mythical tomb of Krernor, and attempt to recover it's fortune.",
         "recommendedLevel": 15,
         "minimumLevel": 5,
+        "assetPath": "/Game/Playlist/playlist_totck.playlist_totck",
         "exposed": true
     },
     "playlist_totck_hard": {
