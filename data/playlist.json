@@ -21,5 +21,13 @@
         "recommendedLevel": 30,
         "minimumLevel": 20,
         "exposed": false
+    },
+    "playlist_campaign": {
+        "name": "Avery Game",
+        "description": "The Beta Campaign.",
+        "recommendedLevel": 1,
+        "minimumLevel": 0,
+        "assetPath": "/Game/Playlist/playlist_campaign.playlist_campaign",
+        "exposed": true
     }
 }

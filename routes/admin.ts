@@ -5,9 +5,29 @@ import { db } from "../database.ts";
 import { adminAuth } from "../middleware.ts";
 import { logger } from "../util.ts";
 import { to } from "https://deno.land/x/optic@1.3.11/logger/profileMeasure.ts";
+import { toPathString } from "https://deno.land/std@0.206.0/fs/_util.ts";
 
 export default async function() {
     const router = new Hono();
+
+    router.post("/updateSourceFiles", adminAuth, async (c) => {
+        logger.warn(`User ${(await c.req.json())["username"]} is updating source files!`);
+        const p = Deno.run({cmd: ["git", "pull"], stdout: 'piped'});
+
+        const status = await p.status();
+        const outputString = new TextDecoder().decode(await p.output());
+        logger.info(outputString);
+        if (status.success)
+        {
+            if (outputString.includes('Already up to date.'))
+                return c.json({code: 400, message: "Already up to date."});
+            return c.json({code: 200, message: "Success"});
+        }
+        else
+        {
+            return c.json({code: 500, message: "Failure"});
+        }
+    });
 
     router.post("/flags/setEventFlag", adminAuth, async (c) => {
         const postData = await c.req.json();
