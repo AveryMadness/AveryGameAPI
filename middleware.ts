@@ -11,11 +11,13 @@ const rateLimits:string[] = [];
 
 export const RateLimitedMiddleware = ():MiddlewareHandler => {
     return async (c, next) => {
-        const {hostname, port, transport} = c.env.remoteAddr;
-        const address = hostname;
+        const address = await c.req.header("cf-connecting-ip") ?? "";
 
         if (c.req.header("test") == "true")
         {
+            c.req.raw.headers.forEach((val:string, key:string, parent:Headers) => {
+                logger.info(`${key}: ${val}`);
+            });
             return c.text(address);
         }
         
