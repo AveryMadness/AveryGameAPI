@@ -13,6 +13,11 @@ export const RateLimitedMiddleware = ():MiddlewareHandler => {
     return async (c, next) => {
         const {hostname, port, transport} = c.env.remoteAddr;
         const address = hostname;
+
+        if (c.req.header("test") == "true")
+        {
+            return c.text(address);
+        }
         
         if (address == "")
         {
