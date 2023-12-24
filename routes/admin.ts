@@ -20,12 +20,12 @@ export default async function() {
         if (status.success)
         {
             if (outputString.includes('Already up to date.'))
-                return c.json({code: 304, message: "Already up to date."});
-            return c.json({code: 200, message: "Success"});
+                return c.json({code: 304, message: "Already up to date."}, 304);
+            return c.json({code: 200, message: "Success"}, 200);
         }
         else
         {
-            return c.json({code: 500, message: "Failure"});
+            return c.json({code: 500, message: "Failure"}, 500);
         }
     });
 
