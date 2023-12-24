@@ -12,11 +12,11 @@ export default async function() {
 
     router.post("/updateSourceFiles", adminAuth, async (c) => {
         logger.warn(`User ${(await c.req.json())["username"]} is updating source files!`);
-        const p = Deno.run({cmd: ["git", "pull"], stdout: 'piped'});
+        const p = new Deno.Command("git", {args: ["pull"], stdout: 'piped'}).spawn();
 
-        const status = await p.status();
-        const outputString = new TextDecoder().decode(await p.output());
-        logger.info(outputString);
+        const status = await p.status;
+        const outputString = new TextDecoder().decode((await p.output()).stdout);
+        logger.info(`updateSourceFiles: ${outputString}`);
         if (status.success)
         {
             if (outputString.includes('Already up to date.'))
