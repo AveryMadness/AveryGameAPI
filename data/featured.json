@@ -1,6 +1,6 @@
 {
     "featured": {
-        "playlists": ["playlist_default", "playlist_totck"]
+        "playlists": ["playlist_default", "playlist_totck", "playlist_campaign"]
     },
     "contentPage": true
 }
