@@ -16,6 +16,10 @@ export default async function() {
 
     const currentGameVersion = Deno.env.get("GAME_VERSION") ?? "0.25.0";
 
+    router.get("/heartbeat", async (c) => {
+        return c.json({code: 200, message: "You should never see this."});
+    });
+
     router.get("/checkGameVersion", async (c) => {
         const gameVersion = await c.req.query("version");
 
