@@ -2,7 +2,7 @@ import { Hono } from "https://deno.land/x/hono@v3.8.1/mod.ts";
 import { logger } from "../util.ts";
 import { keyAuth, adminAuth, adminKeyAuth, userpassAuth } from "../middleware.ts";
 import * as accountUtil from "../accountUtil.ts"
-import { QueryDocumentSnapshot, collection, doc, getDoc, getDocs, getDocsFromServer, query, setDoc, updateDoc, where } from "https://www.gstatic.com/firebasejs/9.8.1/firebase-firestore.js";
+import { DocumentReference, DocumentSnapshot, QueryDocumentSnapshot, collection, doc, getDoc, getDocs, getDocsFromServer, query, setDoc, updateDoc, where } from "https://www.gstatic.com/firebasejs/9.8.1/firebase-firestore.js";
 import { db } from "../database.ts";
 import * as path from "https://deno.land/std@0.208.0/path/mod.ts";
 import { dirname } from "https://deno.land/std@0.206.0/path/dirname.ts";
@@ -18,6 +18,135 @@ export default async function() {
 
     router.get("/heartbeat", async (c) => {
         return c.json({code: 200, message: "You should never see this."});
+    });
+
+    router.post("/offer/claimOffer", keyAuth, async (c) => {
+        const postData = await c.req.json();
+        const user = postData.user;
+        const offerId = postData.offer;
+
+        if (!offerId)
+        {
+            return c.json({code: 400, message: "Invalid user parameters."});
+        }
+
+        const offerRef = doc(db, "offers", offerId);
+        const offerSnap = await getDoc(offerRef);
+
+        if (!offerSnap.exists())
+        {
+            return c.json({code: 404, message: `Offer '${offerId} not found.`});
+        }
+
+        const name = await accountUtil.getUsernameFromUserID(user);
+        const offerExistsRef = doc(db, "offers", offerId, "redeemed", name);
+        const snap = await getDoc(offerExistsRef);
+
+        if (snap.exists())
+        {
+            return c.json({code: 403, message: "Offer already redeemed."});
+        }
+
+        const data = offerSnap.data();
+
+        if (data.promotionalOffer)
+        {
+            const promoCode = postData.promoCode;
+            if (!promoCode)
+            {
+                return c.json({code: 400, message: "Invalid user parameters."});
+            }
+
+            if (data.promotionalCode != promoCode)
+            {
+                return c.json({code: 403, message: "Incorrect promo code."});
+            }
+        }
+
+        if (data.microtransactionalRequirement)
+        {
+            const username = await accountUtil.getUsernameFromUserID(user);
+            const cost = data.cost;
+            const userRef = doc(db, "user", username);
+            const userSnap = await getDoc(userRef);
+            const userData = userSnap.data();
+
+            const MtxCurrency = userData.MtxCurrency ?? 0;
+            if (MtxCurrency < cost)
+            {
+                return c.json({code: 403, message: "Not enough MtxCurrency to redeem offer."});
+            }
+
+            updateDoc(userRef, {
+                MtxCurrency: (MtxCurrency - cost)
+            });
+        }
+
+        const username = await accountUtil.getUsernameFromUserID(user);
+        const rewardsCollection = collection(db, "offers", offerId, "rewards");
+        const q = await getDocs(rewardsCollection);
+        await q.forEach(async (rewardDoc:DocumentSnapshot) => {
+            const data = rewardDoc.data();
+
+            if (data.statReward)
+            {
+                const statRef = doc(db, "user", username, "stat", data.statName);
+                await setDoc(statRef, {
+                    value: data.statValue
+                });
+            }
+
+            if (data.microtransactionalReward)
+            {
+                const userRef = doc(db, "user", username);
+                const userSnap = await getDoc(userRef);
+                const userData = userSnap.data();
+                
+                await updateDoc(userRef, {
+                    MtxCurrency: (userData.MtxCurrency ?? 0) + data.microtransactionalAmount
+                });
+            }
+        }, null);
+
+        await setDoc(offerExistsRef, {
+            redeemed: true
+        });
+
+        return c.json({code: 200, message: "Success", redemptionMessage: data.redemptionMessage});
+    });
+
+    router.get("/offer/:offerid", async (c) => {
+        let { offerid } = await c.req.param();
+        offerid = decodeURIComponent(offerid);
+
+        const offerRef = doc(db, "offers", offerid);
+        const offerSnap = await getDoc(offerRef);
+
+        if (!offerSnap.exists())
+        {
+            return c.json({code: 404, message: `Offer '${offerid}' not found.`});
+        }
+
+        const rewards:object[] = [];
+
+        const rewardsCollection = collection(db, "offers", offerid, "rewards");
+        const q = await getDocs(rewardsCollection);
+        q.forEach((doc:DocumentSnapshot) => {
+            const data = doc.data();
+            rewards.push({rewardName: data.rewardName, statReward: data.statReward, statName: data.statName, statValue: data.statValue, microtransactionalReward: data.microtransactionalReward, microtransactionalAmount: data.microtransactionalAmount});
+        }, null);
+
+        const data = offerSnap.data();
+        return c.json({code: 200, message: "Success", offer: {
+            offerName: data.offerName,
+            redemptionMessage: data.redemptionMessage,
+            promotionalOffer: data.promotionalOffer,
+            promotionalCode: data.promotionalCode,
+            microtransactionalRequirement: data.microtransactionalRequirement,
+            cost: data.cost,
+            rewards: rewards
+        }});
+    
     });
 
     router.get("/checkGameVersion", async (c) => {

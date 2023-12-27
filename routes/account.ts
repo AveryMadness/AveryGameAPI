@@ -270,6 +270,7 @@ export default async function() {
         }
 
         const hashPass = await hashLibrary.hashPassword(password);
+        const key = await token.getTokenFromUserId(id);
 
         await setDoc(doc(usersRef, username), {
             id: id,
@@ -277,7 +278,9 @@ export default async function() {
             profilePhoto: profilePhoto,
             isAdmin: false,
             betaTester: false,
-            banned: false
+            banned: false,
+            token: key,
+            MtxCurrency: 0
         });
 
         await accountUtil.InitializeProfile(username);

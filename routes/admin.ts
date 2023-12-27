@@ -29,6 +29,47 @@ export default async function() {
         }
     });
 
+    router.post("/offer/createOffer", adminAuth, async (c) => {
+        const postData = await c.req.json();
+        const username = postData.username;
+        const offer = postData.offer;
+        logger.warn(`User ${username} is creating an offer with name '${offer.offerName}'`);
+        
+        const offerRef = doc(db, "offers", offer.offerName);
+        const offerSnap = await getDoc(offerRef);
+
+        if (offerSnap.exists())
+        {
+            return c.json({code: 400, message: `Offer ${offer.offerName} alredy exists.`});
+        }
+
+        await setDoc(offerRef, {
+            offerName: offer.offerName,
+            redemptionMessage: offer.redemptionMessage,
+            promotionalOffer: offer.promotionalOffer,
+            promotionalCode: offer.promotionalCode,
+            microtransactionalRequirement: offer.microtransactionalRequirement,
+            cost: offer.cost
+        });
+
+        for (var i = 0; i < offer.rewards.length; i++)
+        {
+            const reward = offer.rewards[i];
+            const rewardRef = doc(db, "offers", offer.offerName, "rewards", reward.rewardName);
+
+            await setDoc(rewardRef, {
+                rewardName: reward.rewardName,
+                statReward: reward.statReward,
+                statName: reward.statName,
+                statValue: reward.statValue,
+                microtransactionalReward: reward.microtransactionalReward,
+                microtransactionalAmount: reward.microtransactionalAmount
+            });
+        }
+
+        return c.json({code: 200, message: "Success"});
+    });
+
     router.post("/flags/setEventFlag", adminAuth, async (c) => {
         const postData = await c.req.json();
         const flag = postData.flag;
