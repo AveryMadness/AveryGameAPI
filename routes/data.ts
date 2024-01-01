@@ -20,6 +20,25 @@ export default async function() {
         return c.text("Not limited!");
     });
 
+    router.get("/pak/:pakid", async (c) => {
+        const {pakid} = c.req.param();
+
+        if (!pakid)
+        {
+            return c.json({code: 400, message: "Invalid user parameters."}, 400);
+        }
+
+        if (!existsSync(path.join(".", "data", "pak", `${pakid}.pak`)))
+        {
+            return c.json({code: 404, message: `Pak ${pakid}.pak does not exist.`}, 404);
+        }
+
+        const data = await Deno.open(path.join(".", "data", "pak", `${pakid}.pak`), {read: true});
+        c.header("FileName", pakid + ".pak");
+        c.header("Content-Disposition", `attachment; filename="${pakid}.pak"`);
+        return c.body(data.readable, 200);
+    });
+
     router.get("/content/:contentId", async (c) => {
         const { contentId } = c.req.param();
 
