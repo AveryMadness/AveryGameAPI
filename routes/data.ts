@@ -2,7 +2,7 @@ import { Hono } from "https://deno.land/x/hono@v3.8.1/mod.ts";
 import { DocumentSnapshot, Query, QueryDocumentSnapshot, collection, doc, getDoc, getDocs, query } from "https://www.gstatic.com/firebasejs/9.8.1/firebase-firestore.js";
 import { db } from "../database.ts";
 import { logger } from "../util.ts";
-import { ratelimitAuth } from "../middleware.ts";
+import { ratelimitAuth, keyAuth } from "../middleware.ts";
 import * as accountUtil from "../accountUtil.ts";
 import * as path from "https://deno.land/std@0.208.0/path/mod.ts";
 import {existsSync} from "https://deno.land/std/fs/mod.ts";
@@ -20,12 +20,30 @@ export default async function() {
         return c.text("Not limited!");
     });
 
-    router.get("/pak/:pakid", async (c) => {
+    router.get("/pak/:pakid", keyAuth, async (c) => {
         const {pakid} = c.req.param();
+        const user = c.req.header("user") ?? "";
+
+        const username = await accountUtil.getUsernameFromUserID(user);
+        const userDoc = doc(db, "user", username);
+        const userSnap = await getDoc(userDoc);
 
         if (!pakid)
         {
             return c.json({code: 400, message: "Invalid user parameters."}, 400);
+        }
+
+        if (existsSync(path.join(".", "data", "pak", "auth", `${pakid}.json`)))
+        {
+            const json = await getJson(path.join(".", "data", "pak", "auth", `${pakid}.json`));
+
+            const permissions = json.permissions;
+
+            if (permissions.admin && !userSnap.data()["isAdmin"])
+                return c.json({code: 403, message: `Insufficient permissions for user ${username}`});
+
+            if (permissions.betaTester && !userSnap.data()["betaTester"])
+                return c.json({code: 403, message: `Insufficient permissions for user ${username}`});
         }
 
         if (!existsSync(path.join(".", "data", "pak", `${pakid}.pak`)))

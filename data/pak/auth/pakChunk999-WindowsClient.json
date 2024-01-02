@@ -1,0 +1,6 @@
+{
+    "permissions": {
+        "admin": true,
+        "betaTester": false
+    }
+}
