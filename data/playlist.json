@@ -29,5 +29,13 @@
         "minimumLevel": 0,
         "assetPath": "/Game/Playlist/playlist_campaign.playlist_campaign",
         "exposed": true
+    },
+    "playlist_dlc1": {
+        "name": "DLC Playlist",
+        "description": "A dlc playlist!",
+        "recommendedLevel": 0,
+        "minimumLevel": 0,
+        "assetPath": "/Game/DLCTest/Playlist/playlist_dlc1.playlist_dlc1",
+        "exposed": true
     }
 }
