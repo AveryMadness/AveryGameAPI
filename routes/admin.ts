@@ -2,7 +2,7 @@ import { Hono } from "https://deno.land/x/hono@v3.8.1/mod.ts";
 import * as accountUtil from "../accountUtil.ts";
 import { deleteDoc, doc, getDoc, setDoc, updateDoc } from "https://www.gstatic.com/firebasejs/9.8.1/firebase-firestore.js";
 import { db } from "../database.ts";
-import { adminAuth } from "../middleware.ts";
+import { adminAuth, adminKeyAuth } from "../middleware.ts";
 import { logger } from "../util.ts";
 import { to } from "https://deno.land/x/optic@1.3.11/logger/profileMeasure.ts";
 import { toPathString } from "https://deno.land/std@0.206.0/fs/_util.ts";
@@ -27,6 +27,15 @@ export default async function() {
         {
             return c.json({code: 500, message: "Failure"}, 500);
         }
+    });
+
+    router.post("/pak/uploadPak", adminKeyAuth, async (c) => {
+        const body = await c.req.arrayBuffer();
+        const user = c.req.header("user");
+        const fileName = c.req.header("fileName");
+        logger.warn(`User ${user} is uploading pak ${fileName}.`);
+
+        return c.text("Not implemented");
     });
 
     router.post("/offer/createOffer", adminAuth, async (c) => {

@@ -28,14 +28,16 @@ export default async function() {
         const userDoc = doc(db, "user", username);
         const userSnap = await getDoc(userDoc);
 
+        let hasSig:boolean = false;
+
         if (!pakid)
         {
             return c.json({code: 400, message: "Invalid user parameters."}, 400);
         }
 
-        if (existsSync(path.join(".", "data", "pak", "auth", `${pakid}.json`)))
+        if (existsSync(path.join(".", "data", "pak", `${pakid}`, `config.json`)))
         {
-            const json = await getJson(path.join(".", "data", "pak", "auth", `${pakid}.json`));
+            const json = await getJson(path.join(".", "data", "pak", `${pakid}`, `config.json`));
 
             const permissions = json.permissions;
 
@@ -44,16 +46,44 @@ export default async function() {
 
             if (permissions.betaTester && !userSnap.data()["betaTester"])
                 return c.json({code: 403, message: `Insufficient permissions for user ${username}`});
+
+            logger.info(permissions.signed);
+
+            if (c.req.header("checkSign") == "true")
+            {
+                if (permissions.signed)
+                {
+                    if (!existsSync(path.join(".", "data", "pak", `${pakid}`, `${pakid}.sig`)))
+                    {
+                        return c.json({code: 404, message: `Sig ${pakid}.sig does not exist.`}, 404);
+                    }
+
+                    const data = await Deno.open(path.join(".", "data", "pak", `${pakid}`, `${pakid}.sig`), {read: true});
+                    c.header("FileName", pakid + ".sig");
+                    c.header("Content-Disposition", `attachment; filename="${pakid}.sig"`);
+                    c.header("fileSign", "true");
+                    return c.body(data.readable, 200);
+                }
+            }
+
+            if (permissions.signed)
+                hasSig = true;
+        }
+        else
+        {
+            logger.warn(`File ${path.join(".", "data", "pak", pakid, `config.json`)} does not exist.`);
         }
 
-        if (!existsSync(path.join(".", "data", "pak", `${pakid}.pak`)))
+        if (!existsSync(path.join(".", "data", "pak", pakid, `${pakid}.pak`)))
         {
             return c.json({code: 404, message: `Pak ${pakid}.pak does not exist.`}, 404);
         }
 
-        const data = await Deno.open(path.join(".", "data", "pak", `${pakid}.pak`), {read: true});
+        const data = await Deno.open(path.join(".", "data", "pak", pakid, `${pakid}.pak`), {read: true});
         c.header("FileName", pakid + ".pak");
         c.header("Content-Disposition", `attachment; filename="${pakid}.pak"`);
+        c.header("fileSign", "false");
+        c.header("hasSig", hasSig.toString());
         return c.body(data.readable, 200);
     });
 
