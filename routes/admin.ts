@@ -61,7 +61,7 @@ export default async function() {
             cost: offer.cost
         });
 
-        for (var i = 0; i < offer.rewards.length; i++)
+        for (let i = 0; i < offer.rewards.length; i++)
         {
             const reward = offer.rewards[i];
             const rewardRef = doc(db, "offers", offer.offerName, "rewards", reward.rewardName);

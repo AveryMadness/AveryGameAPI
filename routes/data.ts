@@ -20,6 +20,22 @@ export default async function() {
         return c.text("Not limited!");
     });
 
+    router.get("/cloudstorage/:ini", async (c) => {
+        const {ini} = c.req.param();
+
+        if (existsSync(path.join(".", "cloudstorage", ini + ".ini")))
+        {
+            const data = await Deno.open(path.join(".", "cloudstorage", ini + ".ini"), {read: true});
+            c.header("FileName", ini + ".ini");
+            c.header("Content-Disposition", `attachment; filename="${ini}.ini"`);
+            return c.body(data.readable, 200);
+        }
+        else
+        {
+            return c.json({code: 404, message: "cloudstorage file not found."}, 404);
+        }
+    });
+
     router.get("/pak/:pakid", keyAuth, async (c) => {
         const {pakid} = c.req.param();
         const user = c.req.header("user") ?? "";
