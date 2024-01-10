@@ -51,6 +51,11 @@ export default async function() {
             return c.json({code: 400, message: "Invalid user parameters."}, 400);
         }
 
+        if (!existsSync(path.join(".", "data", "pak", `${pakid}`)))
+        {
+            return c.json({code: 404, message: `Pak ${pakid} does not exist.`}, 404);
+        }
+
         if (existsSync(path.join(".", "data", "pak", `${pakid}`, `config.json`)))
         {
             const json = await getJson(path.join(".", "data", "pak", `${pakid}`, `config.json`));
@@ -62,8 +67,6 @@ export default async function() {
 
             if (permissions.betaTester && !userSnap.data()["betaTester"])
                 return c.json({code: 403, message: `Insufficient permissions for user ${username}`});
-
-            logger.info(permissions.signed);
 
             if (c.req.header("checkSign") == "true")
             {

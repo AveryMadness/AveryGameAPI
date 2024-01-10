@@ -18,6 +18,52 @@ export const UserStatus = Object.freeze({
 export default async function() {
     const router = new Hono();
 
+    const banWarnCounterKey = "01BEC33FE5575E51CEE950A439DCB47A5C28AED5A3137C29F864710CCBA8E128";
+    router.post("/incrementBanWarningCounter", keyAuth, async (c) => {
+        const postData = await c.req.json();
+        let key = postData.key;
+        const userId = key.split(banWarnCounterKey)[1];
+        key = key.split(userId)[0];
+
+        if (key != banWarnCounterKey)
+        {
+            return c.json({code: 403, message: "Invalid authentication."}, 403);
+        }
+
+        const username = await accountUtil.getUsernameFromUserID(userId);
+        if (username == "")
+        {
+            return c.json({code: 403, message: "Invalid authentication."}, 403);
+        }
+
+        if (userId != postData.user)
+        {
+            return c.json({code: 403, message: "Invalid authentication."}, 403);
+        }
+
+        const severity = postData.severity;
+        const userDoc = doc(db, "user", username);
+        const userSnap = await getDoc(userDoc);
+        const warns:number = userSnap.data()["warns"] ?? 0;
+
+        if (warns + severity >= 10)
+        {
+            await updateDoc(userDoc, {
+                banned: true,
+                warns: 10
+            });
+            return c.json({code: 200, message: "Success", bHasBanned: true}, 200);
+        }
+        else
+        {
+            await updateDoc(userDoc, {
+                warns: warns + severity,
+            });
+            return c.json({code: 200, message: "Success", bHasBanned: false}, 200);
+        }
+
+    });
+
     router.post("/authenticateAdmin", adminAuth, async (c) => {
         const postData = await c.req.json();
         const username = postData["username"];

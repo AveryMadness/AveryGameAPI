@@ -12,8 +12,26 @@ import { BufReader } from "https://deno.land/std@0.92.0/io/bufio.ts";
 import { readerFromStreamReader } from "https://deno.land/std@0.205.0/streams/mod.ts";
 import {existsSync} from "https://deno.land/std@0.206.0/fs/mod.ts";
 import { exists } from "https://deno.land/std@0.206.0/fs/exists.ts";
+import * as path from "https://deno.land/std@0.208.0/path/mod.ts";
 
 
+
+if (!existsSync(path.join("cloudstorage")))
+{
+  logger.error("Cloudstorage folder does not exist. Please create for the program to function.");
+  Deno.exit(1);
+}
+
+if (!existsSync(path.join("data")))
+{
+  logger.error("Data folder does not exist. Please create for the program to function.");
+  Deno.exit(1);
+}
+
+if (!existsSync(path.join("data", "playlist.json")))
+{
+  logger.warn("Playlists data does not exist, platlist functionality will not work.");
+}
 
 const app = new Hono({});
 
