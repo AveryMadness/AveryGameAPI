@@ -152,12 +152,33 @@ export default async function() {
     router.get("/checkGameVersion", async (c) => {
         const gameVersion = await c.req.query("version");
 
+        var json = await getJson(path.join(".", "data", "version.json"));
+        var versions = json.playableVersions;
+
         if (!gameVersion)
         {
             return c.json({code: 400, message: "Invalid user parameters."}, 400);
         }
         
-        return c.json({code: 200, message: "Success", correctVersion: (gameVersion == currentGameVersion) ?? false});
+        return c.json({code: 200, message: "Success", correctVersion: versions.includes(gameVersion)});
+    });
+
+    router.get("/getGameVersions", async (c) => {
+        const versions:object[] = [];
+
+        var json = await getJson(path.join(".", "data", "version.json"));
+        var versionStrings = json.playableVersions;
+        var versionTypes = json.versionType;
+        
+        for (let i = 0; i < versionStrings.length; i++)
+        {
+            const versionStr = versionStrings[i];
+            const versionType = versionTypes[i];
+
+            versions.push({version: versionStr, type: versionType});
+        }
+
+        return c.json({code: 200, message: "Success", versions: versions});
     });
 
     router.get("/playlist/:playlistId", async (c) => {
