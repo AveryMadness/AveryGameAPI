@@ -1,0 +1,7 @@
+{
+    "permissions": {
+        "admin": false,
+        "betaTester": true,
+        "signed": true
+    }
+}
