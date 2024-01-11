@@ -33,6 +33,12 @@ if (!existsSync(path.join("data", "playlist.json")))
   logger.warn("Playlists data does not exist, platlist functionality will not work.");
 }
 
+if (!existsSync(path.join("data", "version.json")))
+{
+  logger.error("version.json file does not exist. Please create and populate for the program to function.");
+  Deno.exit(1);
+}
+
 const app = new Hono({});
 
 app.onError((err, c) => {
