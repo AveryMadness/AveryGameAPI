@@ -20,6 +20,131 @@ export default async function() {
         return c.json({code: 200, message: "You should never see this."});
     });
 
+    router.post("/updateItem", keyAuth, async (c) => {
+        const postData = await c.req.json();
+        const user = postData.user;
+        const bNewItem = postData.bNewItem ?? false;
+        const item = postData.item ?? "";
+
+        const username = await accountUtil.getUsernameFromUserID(user);
+
+        if (bNewItem)
+        {
+            const count = postData.count ?? 0;
+            const itemType = postData.itemType ?? "None";
+            const bEquip = postData.bEquipItem ?? false;
+            const bIsWeapon = postData.bIsWeapon ?? false;
+            const itemPath = postData.itemPath ?? false;
+
+            const itemRef = doc(db, "user", username, "inventory", item);
+            const itemSnap = await getDoc(itemRef);
+
+            if (bEquip)
+            {
+                await accountUtil.unequipWeaponOfType(itemType, username);
+            }
+
+            await setDoc(itemRef, {
+                count: count,
+                itemPath: itemPath,
+                IsWeapon: bIsWeapon,
+                IsEquipped: bEquip,
+                ItemType: itemType
+            });
+
+            return c.json({code: 200, message: "Success"}, 200);
+        }
+
+        const itemRef = doc(db, "user", username, "inventory", item);
+        const itemSnap = await getDoc(itemRef);
+
+        if (!itemSnap.exists())
+        {
+            return c.json({code: 404, message: `Item ${item} not found.`}, 404);
+        }
+
+        const data = itemSnap.data();
+
+        const count = postData.count ?? data.count;
+        const itemType = postData.itemType ?? data.ItemType;
+        const bEquip = postData.bEquipItem ?? data.IsEquipped;
+        const bIsWeapon = postData.bIsWeapon ?? data.IsWeapon;
+        const itemPath = postData.itemPath ?? data.itemPath;
+
+        if (postData.bEquipItem)
+        {
+            await accountUtil.unequipWeaponOfType(itemType, username);
+        }
+
+        await updateDoc(itemRef, {
+            count: count,
+            ItemType: itemType,
+            IsEquipped: bEquip,
+            IsWeapon: bIsWeapon,
+            itemPath: itemPath
+        });
+
+        return c.json({code: 200, message: "Success"}, 200);
+
+    });
+
+    router.get("/getItem", keyAuth, async (c) => {
+        const user = c.req.header("user");
+        const item = c.req.query("item");
+
+        if (!user || !item)
+        {
+            return c.json({code: 400, message: "Invalid user parameters."}, 400);
+        }
+
+        const username = await accountUtil.getUsernameFromUserID(user);
+        
+        const userRef = doc(db, "user", username, "inventory", item);
+        const userSnap = await getDoc(userRef);
+
+        if (!userSnap.exists())
+        {
+            return c.json({code: 404, message: `Item ${item} not found.`}, 404);
+        }
+
+        return c.json({code: 200, message: "Success", count: userSnap.data()["count"] ?? 0, itemPath: userSnap.data()["itemPath"] ?? "", bIsWeapon: userSnap.data()["IsWeapon"] ?? false, bIsEquipped: userSnap.data()["IsEquipped"] ?? false, itemType: userSnap.data()["ItemType"] ?? "None"});
+    });
+
+    router.get("/getEquippedWeapons", keyAuth, async (c) => {
+        const user = c.req.header("user");
+
+        if (!user)
+        {
+            return c.json({code: 400, message: "Invalid user parameters."}, 400);
+        }
+
+        const username = await accountUtil.getUsernameFromUserID(user);
+
+        const q = query(collection(db, "user", username, "inventory"), where("IsEquipped", "==", true), where("IsWeapon", "==", true));
+
+        let primary:any = {};
+        let secondary:any = {};
+        let primaryExists:boolean = false;
+        let secondaryExists:boolean = false;
+
+        const querySnapshot = await getDocs(q);
+        await querySnapshot.forEach(async (doc:QueryDocumentSnapshot) => {
+            const data = doc.data();
+            if (data["ItemType"] == "Primary")
+            {
+                primary = data;
+                primaryExists = true;
+            }
+            else if (data["ItemType"] == "Secondary")
+            {
+                secondary = data;
+                secondaryExists = true;
+            }
+        }, null);
+
+        return c.json({code: 200, message: "Success", primary: primary, secondary: secondary, bHasPrimary: primaryExists, bHasSecondary: secondaryExists});
+    });
+
     router.post("/offer/claimOffer", keyAuth, async (c) => {
         const postData = await c.req.json();
         const user = postData.user;

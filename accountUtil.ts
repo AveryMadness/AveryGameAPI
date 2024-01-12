@@ -50,6 +50,18 @@ export async function getUsernameFromUserID(userId:string)
     return retVal;
 }
 
+export async function unequipWeaponOfType(type:string, username:string)
+{
+    const q = query(collection(db, "user", username, "inventory"), where("ItemType", "==", type));
+    
+    const querySnapshot = await getDocs(q);
+    await querySnapshot.forEach(async (doc:QueryDocumentSnapshot) => {
+        await updateDoc(doc, {
+            IsEquipped: false
+        });
+    }, null);
+}
+
 export async function getFriendsFromUserID(userId:string) 
 {
     const username = await getUsernameFromUserID(userId);
