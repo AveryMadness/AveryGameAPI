@@ -229,9 +229,14 @@
 
         async function tryLogin()
         {
+            if (!localStorage.getItem("username"))
+            {
+                return;
+            }
+
             document.getElementById("login-button").disabled = true;
-            let authkeyUrl = apiUrl + "/api/v1/account/authenticateAuthKey";
-            let data = {"user": localStorage.getItem("user"), "key": localStorage.getItem("key")};
+            let authkeyUrl = apiUrl + "/api/v1/account/authenticateAdmin";
+            let data = {"username": localStorage.getItem("username"), "password": localStorage.getItem("password")};
             let response = await fetch(authkeyUrl, {
                 method: "POST", // *GET, POST, PUT, DELETE, etc.
                 mode: "cors", // no-cors, *cors, same-origin
@@ -248,6 +253,8 @@
 
             if (response.status == 200)
             {
+                document.getElementById("username").value = localStorage.getItem("username");
+                document.getElementById("password").value = localStorage.getItem("password");
                 document.getElementById("login-form").style.display = "none";
                 document.getElementById("login-button").disabled = false;
                 await addUsers();
@@ -525,6 +532,8 @@
             
             if (success)
             {
+                window.localStorage.username = username;
+                window.localStorage.password = password;
                 setCookie(json["key"], json["userId"]);
                 userId = json["userId"];
                 //setInterval(async function () { await getNewKey() }, 180000);
@@ -610,17 +619,15 @@
         {
             let success = false;
 
-            
-            let url = apiUrl + "/api/v1/account/authenticateAdminKey";
+            let url = apiUrl + "/api/v1/account/authenticateUser";
 
-            const { key, userId }= getCookie();
+            const username = window.localStorage.username;
+            const password = window.localStorage.password;
 
-            alert(userId);
-
-            data = {"user": userId};
+            data = {"username": username, "password": password};
 
             
-            if (!key)
+            if (!username || !password)
             {
                 return;
             }
@@ -632,7 +639,6 @@
                 credentials: "same-origin",
                 headers: {
                     "Content-Type": "application/json",
-                    "authKey": key
                 },
                 redirect: "follow",
                 referrerPolicy: "no-referrer",

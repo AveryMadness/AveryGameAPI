@@ -13,6 +13,12 @@ export async function generateToken(userId:string, force:boolean = false)
 {
     const username = await getUsernameFromUserID(userId);
 
+    if (username == "")
+    {
+        const tok = accessToken.generate("ags", userId);
+        return tok;
+    }
+
     const userRef = doc(db, "user", username);
     const userSnap = await getDoc(userRef);
 

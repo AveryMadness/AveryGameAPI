@@ -303,10 +303,10 @@ export default async function() {
         const id = Date.now().toString();
         
         logger.info(`Creating user for ${username} with id ${id}`);
+        logger.info(username);
 
-        const usersRef = collection(db, "user");
-        const userExistsRef = doc(db, "user", username);
-        const docSnap = await getDoc(userExistsRef);
+        const userDoc = doc(db, "user", username);
+        const docSnap = await getDoc(userDoc);
         
         if (docSnap.exists())
         {
@@ -315,10 +315,12 @@ export default async function() {
             return c.json({code: 403, message: `User ${username} already exists.`});
         }
 
-        const hashPass = await hashLibrary.hashPassword(password);
-        const key = await token.getTokenFromUserId(id);
+        logger.info("asd");
 
-        await setDoc(doc(usersRef, username), {
+        const hashPass = await hashLibrary.hashPassword(password);
+        const key = await token.generateToken(id);
+
+        await setDoc(userDoc, {
             id: id,
             password: hashPass,
             profilePhoto: profilePhoto,

@@ -53,7 +53,7 @@ export async function getUsernameFromUserID(userId:string)
 export async function unequipWeaponOfType(type:string, username:string)
 {
     const q = query(collection(db, "user", username, "inventory"), where("ItemType", "==", type));
-    
+
     const querySnapshot = await getDocs(q);
     await querySnapshot.forEach(async (doc:QueryDocumentSnapshot) => {
         await updateDoc(doc, {
