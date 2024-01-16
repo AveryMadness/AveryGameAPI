@@ -20,6 +20,23 @@ export default async function() {
         return c.json({code: 200, message: "You should never see this."});
     });
 
+    router.get("/hasItem", keyAuth, async (c) => {
+        const item = c.req.query("item");
+        const user = c.req.header("user") ?? "";
+
+        if (!item)
+        {
+            return c.json({code: 400, message: "Invalid user parameters."}, 400);
+        }
+        
+        const username = await accountUtil.getUsernameFromUserID(user);
+
+        const itemRef = doc(db, "user", username, "inventory", item);
+        const itemSnap = await getDoc(itemRef);
+
+        return c.json({code: 200, message: "Success", hasItem: itemSnap.exists()}, 200);
+    });
+
     router.post("/updateItem", keyAuth, async (c) => {
         const postData = await c.req.json();
         const user = postData.user;
