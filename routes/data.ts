@@ -5,8 +5,8 @@ import { logger } from "../util.ts";
 import { ratelimitAuth, keyAuth } from "../middleware.ts";
 import * as accountUtil from "../accountUtil.ts";
 import * as path from "https://deno.land/std@0.208.0/path/mod.ts";
-import {existsSync} from "https://deno.land/std/fs/mod.ts";
-
+import {existsSync} from "https://deno.land/std@0.206.0/fs/mod.ts";
+import { Md5, Message } from "https://deno.land/std@0.119.0/hash/md5.ts";
 
 
 async function getJson(filePath: string) {
@@ -28,7 +28,12 @@ export default async function() {
             const data = await Deno.open(path.join(".", "cloudstorage", ini + ".ini"), {read: true});
             c.header("FileName", ini + ".ini");
             c.header("Content-Disposition", `attachment; filename="${ini}.ini"`);
-            return c.body(data.readable, 200);
+            const md5 = new Md5();
+            const newmd5 = md5.update(((await (await data.readable.getReader()).read()).value) ?? "");
+            const hash = newmd5.toString("hex");
+            c.header("FileHash", hash);
+            const data2 = await Deno.open(path.join(".", "cloudstorage", ini + ".ini"), {read: true});
+            return c.body(data2.readable, 200);
         }
         else
         {
@@ -81,7 +86,12 @@ export default async function() {
                     c.header("FileName", pakid + ".sig");
                     c.header("Content-Disposition", `attachment; filename="${pakid}.sig"`);
                     c.header("fileSign", "true");
-                    return c.body(data.readable, 200);
+                    const md5 = new Md5();
+                    const newmd5 = md5.update(((await (await data.readable.getReader()).read()).value) ?? "");
+                    const hash = newmd5.toString("hex");
+                    c.header("FileHash", hash);
+                    const data2 = await Deno.open(path.join(".", "data", "pak", `${pakid}`, `${pakid}.sig`), {read: true});
+                    return c.body(data2.readable, 200);
                 }
             }
 
@@ -103,7 +113,12 @@ export default async function() {
         c.header("Content-Disposition", `attachment; filename="${pakid}.pak"`);
         c.header("fileSign", "false");
         c.header("hasSig", hasSig.toString());
-        return c.body(data.readable, 200);
+        const md5 = new Md5();
+        const newmd5 = md5.update(((await (await data.readable.getReader()).read()).value) ?? "");
+        const hash = newmd5.toString("hex");
+        c.header("FileHash", hash);
+        const data2 = await Deno.open(path.join(".", "data", "pak", pakid, `${pakid}.pak`), {read: true});
+        return c.body(data2.readable, 200);
     });
 
     router.get("/content/:contentId", async (c) => {
