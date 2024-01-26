@@ -61,6 +61,10 @@ export default async function() {
                 await accountUtil.unequipWeaponOfType(itemType, username);
             }
 
+            logger.info("test");
+
+            try {
+
             await setDoc(itemRef, {
                 count: count,
                 itemPath: itemPath,
@@ -68,6 +72,11 @@ export default async function() {
                 IsEquipped: bEquip,
                 ItemType: itemType
             });
+            }
+            catch (e)
+            {
+                logger.error(e);
+            }
 
             return c.json({code: 200, message: "Success"}, 200);
         }

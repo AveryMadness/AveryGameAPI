@@ -143,6 +143,23 @@ export default async function() {
         return c.json({code: 200, message: "Success", content: json}, 200);
     });
 
+    router.get("/flags/getFlags", async (c) => {
+        const flagsRef = collection(db, "flags");
+        const flags = await getDocs(flagsRef);
+
+        const retFlags:string[] = [];
+        await flags.forEach(async (doc:DocumentSnapshot) => {
+            retFlags.push(doc.id);
+        }, null);
+
+        if (retFlags.length <= 0)
+        {
+            return c.json({code: 500, message: "Failed to retrieve flags."}, 500);
+        }
+
+        return c.json({code: 200, message: "Success", flags: retFlags}, 200);
+    });
+
     router.get("/flags/:flagId", async (c) => {
         const { flagId } = c.req.param();
 

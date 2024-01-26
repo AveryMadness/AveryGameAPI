@@ -10,6 +10,11 @@ import { toPathString } from "https://deno.land/std@0.206.0/fs/_util.ts";
 export default async function() {
     const router = new Hono();
 
+    router.post("/internal/getMemoryUsage", adminAuth, async (c) => {
+       const memUsage = Deno.memoryUsage();
+       return c.json({code: 200, message: "Success", rss: memUsage.rss, heapUsed: memUsage.heapUsed, heapTotal: memUsage.heapTotal}, 200); 
+    });
+
     router.post("/updateSourceFiles", adminAuth, async (c) => {
         logger.warn(`User ${(await c.req.json())["username"]} is updating source files!`);
         const p = new Deno.Command("git", {args: ["pull"], stdout: 'piped'}).spawn();
@@ -89,11 +94,39 @@ export default async function() {
             return c.json({code: 400, message: "Invalid user parameters"}, 400);
         }
 
+        if (!flag.startsWith("flag."))
+        {
+            return c.json({code: 400, message: "Badly formatted flag."}, 400);
+        }
+
         const flagsRef = doc(db, "flags", flag);
 
         await setDoc(flagsRef, {
             value: value
         });
+
+        return c.json({code: 200, message: "Success"}, 200);
+    });
+
+    router.post("/flags/delete/:flag", adminAuth, async (c) => {
+        const postData = await c.req.json();
+        
+        const {flag} = c.req.param();
+
+        if (!flag)
+        {
+            return c.json({code: 400, message: "Invalid user parameters."}, 400);
+        }
+
+        const newsRef = doc(db, "flags", flag);
+        const newsSnap = await getDoc(newsRef);
+
+        if (!newsSnap.exists())
+        {
+            return c.json({code: 404, message: `Flag ${flag} not found.`}, 404);
+        }
+
+        await deleteDoc(newsRef);
 
         return c.json({code: 200, message: "Success"}, 200);
     });

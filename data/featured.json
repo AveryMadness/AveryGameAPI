@@ -1,7 +1,7 @@
 {
     "featured": {
         "playlists": ["playlist_default", "playlist_totck", "playlist_campaign", "playlist_dlc1"],
-        "contentPacks": ["pakchunk15-WindowsNoEditor"]
+        "contentPacks": []
     },
     "contentPage": true
 }
