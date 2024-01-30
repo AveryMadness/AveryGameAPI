@@ -1,18 +1,33 @@
 import { Hono } from "https://deno.land/x/hono@v3.8.1/mod.ts";
 import * as accountUtil from "../accountUtil.ts";
-import { deleteDoc, doc, getDoc, setDoc, updateDoc } from "https://www.gstatic.com/firebasejs/9.8.1/firebase-firestore.js";
+import { _EmptyAppCheckTokenProvider, deleteDoc, doc, getDoc, setDoc, updateDoc } from "https://www.gstatic.com/firebasejs/9.8.1/firebase-firestore.js";
 import { db } from "../database.ts";
 import { adminAuth, adminKeyAuth } from "../middleware.ts";
 import { logger } from "../util.ts";
 import { to } from "https://deno.land/x/optic@1.3.11/logger/profileMeasure.ts";
 import { toPathString } from "https://deno.land/std@0.206.0/fs/_util.ts";
 
+export let bIsMaintenanceMode = false;
 export default async function() {
     const router = new Hono();
 
     router.post("/internal/getMemoryUsage", adminAuth, async (c) => {
        const memUsage = Deno.memoryUsage();
        return c.json({code: 200, message: "Success", rss: memUsage.rss, heapUsed: memUsage.heapUsed, heapTotal: memUsage.heapTotal}, 200); 
+    });
+
+    let MaintenanceTime:Date;
+    router.post("/internal/setMaintenance", adminAuth, async (c) => {
+        const postData = await c.req.json();
+        const newMain = postData.active;
+
+        bIsMaintenanceMode = newMain;
+        MaintenanceTime = new Date(Date.now());
+        return c.json({code: 200, message: "Success"}, 200);
+    })
+
+    router.get("/internal/isMaintenance", async (c) => {
+        return c.json({code: 200, message: "Success", isMaintenance: bIsMaintenanceMode, timeSinceMaintenance: bIsMaintenanceMode ? MaintenanceTime.toISOString() : null}, 200);
     });
 
     router.post("/updateSourceFiles", adminAuth, async (c) => {

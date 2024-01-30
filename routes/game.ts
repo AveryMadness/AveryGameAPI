@@ -6,6 +6,7 @@ import { DocumentReference, DocumentSnapshot, QueryDocumentSnapshot, collection,
 import { db } from "../database.ts";
 import * as path from "https://deno.land/std@0.208.0/path/mod.ts";
 import { dirname } from "https://deno.land/std@0.206.0/path/dirname.ts";
+import { bIsMaintenanceMode } from "./admin.ts";
 
 async function getJson(filePath: string) {
     return JSON.parse(await Deno.readTextFile(filePath));
@@ -303,6 +304,11 @@ export default async function() {
     router.get("/checkGameVersion", async (c) => {
         const gameVersion = await c.req.query("version");
 
+        if (bIsMaintenanceMode)
+        {
+            return c.json({code: 403, message: "Sorry, all servers are currently offline for maintenance. Check back later!"}, 403);
+        }
+
         var json = await getJson(path.join(".", "data", "version.json"));
         var versions = json.playableVersions;
 
@@ -311,7 +317,7 @@ export default async function() {
             return c.json({code: 400, message: "Invalid user parameters."}, 400);
         }
         
-        return c.json({code: 200, message: "Success", correctVersion: versions.includes(gameVersion)});
+        return c.json({code: 200, message: "Success", correctVersion: versions.includes(gameVersion), type: versions.includes(gameVersion) ? versions[gameVersion] : null});
     });
 
     router.get("/getGameVersions", async (c) => {
