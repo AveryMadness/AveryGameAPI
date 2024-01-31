@@ -4,7 +4,7 @@ import { logger } from "../util.ts";
 import { db } from "../database.ts";
 import { collection, doc, getDoc, setDoc, updateDoc } from "https://www.gstatic.com/firebasejs/9.8.1/firebase-firestore.js";
 import * as accountUtil from "../accountUtil.ts"
-import { keyAuth, adminAuth, adminKeyAuth, userpassAuth } from "../middleware.ts";
+import { adminAuth, userAuth } from "../middleware.ts";
 import * as token from "../token.ts";
 
 export const UserStatus = Object.freeze({
@@ -19,7 +19,7 @@ export default async function() {
     const router = new Hono();
 
     const banWarnCounterKey = "01BEC33FE5575E51CEE950A439DCB47A5C28AED5A3137C29F864710CCBA8E128";
-    router.post("/incrementBanWarningCounter", keyAuth, async (c) => {
+    router.post("/incrementBanWarningCounter", userAuth, async (c) => {
         const postData = await c.req.json();
         let key = postData.key;
         const userId = key.split(banWarnCounterKey)[1];
@@ -103,7 +103,7 @@ export default async function() {
         return c.json({code: 200, message: "Success", status: status}, 200);
     });
 
-    router.post("/setUserStatus", keyAuth, async (c) => {
+    router.post("/setUserStatus", userAuth, async (c) => {
         const postData = await c.req.json();
         const userId = postData["user"];
         const status = postData["status"];
@@ -139,14 +139,14 @@ export default async function() {
         return c.json({code: 200, message: "Success"}, 200);
     });
 
-    router.post("/authenticateAdminKey", adminKeyAuth, async (c) => {
+    router.post("/authenticateAdminKey", adminAuth, async (c) => {
         const postData = await c.req.json();
         const userId = postData["user"];
         const key = await token.generateToken(userId);
         return c.json({code: 200, message: "Success", key: key, userId: userId}, 200);
     });
 
-    router.get("getMtxCurrency", keyAuth, async (c) => {
+    router.get("getMtxCurrency", userAuth, async (c) => {
         const user = await c.req.header("user") || "";
 
         const username = await accountUtil.getUsernameFromUserID(user);
@@ -192,7 +192,7 @@ export default async function() {
         return c.json({code: 200, message: "Success", hasPermission: userSnap.data()["betaTester"] || userSnap.data()["isAdmin"]}, 200);
     });
 
-    router.post("/authenticateUserForBeta", keyAuth, async (c) => {
+    router.post("/authenticateUserForBeta", userAuth, async (c) => {
         const postData = await c.req.json();
 
         const username = postData["username"];

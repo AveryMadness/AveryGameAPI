@@ -4,7 +4,7 @@ import * as accountUtil from "../accountUtil.ts"
 import { DocumentSnapshot, collection, doc, getDoc, getDocs } from "https://www.gstatic.com/firebasejs/9.8.1/firebase-firestore.js";
 import { auth, db } from "../database.ts";
 import { checkHashedPassword } from "../hashutil.ts";
-import { userpassAuth } from "../middleware.ts";
+import { userAuth } from "../middleware.ts";
 import { logger } from "../util.ts";
 
 export default async function() {
@@ -38,7 +38,7 @@ export default async function() {
         return c.json({code: 200, message: "Success", user: returnVal});
     });
 
-    router.post("/invalidateAuthToken", userpassAuth, async (c) => {
+    router.post("/invalidateAuthToken", userAuth, async (c) => {
         const postData = await c.req.json();
 
         const userId = postData["user"];
@@ -80,7 +80,7 @@ export default async function() {
 
     });
 
-    router.post("/createAuthToken", userpassAuth, async (c) => {
+    router.post("/createAuthToken", userAuth, async (c) => {
         const postData = await c.req.json();
 
         const userId = postData["user"];

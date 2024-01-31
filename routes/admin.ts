@@ -2,7 +2,7 @@ import { Hono } from "https://deno.land/x/hono@v3.8.1/mod.ts";
 import * as accountUtil from "../accountUtil.ts";
 import { _EmptyAppCheckTokenProvider, deleteDoc, doc, getDoc, setDoc, updateDoc } from "https://www.gstatic.com/firebasejs/9.8.1/firebase-firestore.js";
 import { db } from "../database.ts";
-import { adminAuth, adminKeyAuth } from "../middleware.ts";
+import { adminAuth } from "../middleware.ts";
 import { logger } from "../util.ts";
 import { to } from "https://deno.land/x/optic@1.3.11/logger/profileMeasure.ts";
 import { toPathString } from "https://deno.land/std@0.206.0/fs/_util.ts";
@@ -49,7 +49,7 @@ export default async function() {
         }
     });
 
-    router.post("/pak/uploadPak", adminKeyAuth, async (c) => {
+    router.post("/pak/uploadPak", adminAuth, async (c) => {
         const body = await c.req.arrayBuffer();
         const user = c.req.header("user");
         const fileName = c.req.header("fileName");

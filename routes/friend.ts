@@ -1,5 +1,5 @@
 import { Hono } from "https://deno.land/x/hono@v3.8.1/mod.ts";
-import { keyAuth } from "../middleware.ts";
+import { userAuth } from "../middleware.ts";
 import * as accountUtil from "../accountUtil.ts"
 import { deleteDoc, doc, getDoc, setDoc, updateDoc } from "https://www.gstatic.com/firebasejs/9.8.1/firebase-firestore.js";
 import { db } from "../database.ts";
@@ -81,7 +81,7 @@ export default async function() {
 
     });
 
-    router.post("/removeFriend", keyAuth, async (c) => {
+    router.post("/removeFriend", userAuth, async (c) => {
         const postData = await c.req.json();
 
         const user = postData["user"];
@@ -160,7 +160,7 @@ export default async function() {
 
     });
 
-    router.post("/denyRequest", keyAuth, async (c) => {
+    router.post("/denyRequest", userAuth, async (c) => {
         const postData = await c.req.json();
 
         const denyingUser = postData["user"];
@@ -241,7 +241,7 @@ export default async function() {
 
     });
 
-    router.post("/acceptRequest", keyAuth, async (c) => {
+    router.post("/acceptRequest", userAuth, async (c) => {
         const postData = await c.req.json();
 
         const acceptingUser = postData["user"];
@@ -332,7 +332,7 @@ export default async function() {
 
     });
 
-    router.post("/sendRequest", keyAuth, async (c) => {
+    router.post("/sendRequest", userAuth, async (c) => {
         const postData = await c.req.json();
 
         const userId = postData["user"];

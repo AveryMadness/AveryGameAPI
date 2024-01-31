@@ -1,6 +1,6 @@
 import { Hono } from "https://deno.land/x/hono@v3.8.1/mod.ts";
 import { logger } from "../util.ts";
-import { keyAuth, adminAuth, adminKeyAuth, userpassAuth } from "../middleware.ts";
+import { userAuth, adminAuth } from "../middleware.ts";
 import * as accountUtil from "../accountUtil.ts"
 import { DocumentReference, DocumentSnapshot, QueryDocumentSnapshot, collection, doc, getDoc, getDocs, getDocsFromServer, query, setDoc, updateDoc, where } from "https://www.gstatic.com/firebasejs/9.8.1/firebase-firestore.js";
 import { db } from "../database.ts";
@@ -21,7 +21,7 @@ export default async function() {
         return c.json({code: 200, message: "You should never see this."});
     });
 
-    router.get("/hasItem", keyAuth, async (c) => {
+    router.get("/hasItem", userAuth, async (c) => {
         const item = c.req.query("item");
         const user = c.req.header("user") ?? "";
 
@@ -38,7 +38,7 @@ export default async function() {
         return c.json({code: 200, message: "Success", hasItem: itemSnap.exists()}, 200);
     });
 
-    router.post("/updateItem", keyAuth, async (c) => {
+    router.post("/updateItem", userAuth, async (c) => {
         const postData = await c.req.json();
         const user = postData.user;
         const bNewItem = postData.bNewItem ?? false;
@@ -115,7 +115,7 @@ export default async function() {
 
     });
 
-    router.get("/getItem", keyAuth, async (c) => {
+    router.get("/getItem", userAuth, async (c) => {
         const user = c.req.header("user");
         const item = c.req.query("item");
 
@@ -137,7 +137,7 @@ export default async function() {
         return c.json({code: 200, message: "Success", count: userSnap.data()["count"] ?? 0, itemPath: userSnap.data()["itemPath"] ?? "", bIsWeapon: userSnap.data()["IsWeapon"] ?? false, bIsEquipped: userSnap.data()["IsEquipped"] ?? false, itemType: userSnap.data()["ItemType"] ?? "None"});
     });
 
-    router.get("/getEquippedWeapons", keyAuth, async (c) => {
+    router.get("/getEquippedWeapons", userAuth, async (c) => {
         const user = c.req.header("user");
 
         if (!user)
@@ -172,7 +172,7 @@ export default async function() {
         return c.json({code: 200, message: "Success", primary: primary, secondary: secondary, bHasPrimary: primaryExists, bHasSecondary: secondaryExists});
     });
 
-    router.post("/offer/claimOffer", keyAuth, async (c) => {
+    router.post("/offer/claimOffer", userAuth, async (c) => {
         const postData = await c.req.json();
         const user = postData.user;
         const offerId = postData.offer;
@@ -374,7 +374,7 @@ export default async function() {
         return c.json({code: 200, message: "Success", playlists: playlists});
     });
 
-    router.get("/getStats", keyAuth, async (c) => {
+    router.get("/getStats", userAuth, async (c) => {
         const userId = await c.req.header("user") ?? "";
 
         const username = await accountUtil.getUsernameFromUserID(userId);
@@ -401,7 +401,7 @@ export default async function() {
         return c.json({code: 200, message: "Success", stats: retObj});
     });
 
-    router.get("/getStat", keyAuth, async (c) => {
+    router.get("/getStat", userAuth, async (c) => {
         const stat = await c.req.header("stat") ?? "";
         const userId = await c.req.header("user") ?? "";
 
@@ -427,7 +427,7 @@ export default async function() {
         return c.json({code: 200, message: "Success", value: value}, 200);
     });
 
-    router.post("/setStat", keyAuth, async (c) => {
+    router.post("/setStat", userAuth, async (c) => {
         const postData = await c.req.json();
 
         const statPath = postData["stat"];

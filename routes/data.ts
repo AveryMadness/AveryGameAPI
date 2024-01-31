@@ -2,7 +2,7 @@ import { Hono } from "https://deno.land/x/hono@v3.8.1/mod.ts";
 import { DocumentSnapshot, Query, QueryDocumentSnapshot, collection, doc, getDoc, getDocs, query } from "https://www.gstatic.com/firebasejs/9.8.1/firebase-firestore.js";
 import { db } from "../database.ts";
 import { logger } from "../util.ts";
-import { ratelimitAuth, keyAuth } from "../middleware.ts";
+import { ratelimitAuth, userAuth } from "../middleware.ts";
 import * as accountUtil from "../accountUtil.ts";
 import * as path from "https://deno.land/std@0.208.0/path/mod.ts";
 import {existsSync} from "https://deno.land/std@0.206.0/fs/mod.ts";
@@ -41,7 +41,7 @@ export default async function() {
         }
     });
 
-    router.get("/pak/:pakid", keyAuth, async (c) => {
+    router.get("/pak/:pakid", userAuth, async (c) => {
         const {pakid} = c.req.param();
         const user = c.req.header("user") ?? "";
 

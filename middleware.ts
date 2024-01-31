@@ -44,137 +44,77 @@ export const AdminMiddleware = ():MiddlewareHandler => {
 
         const username = jsonData["username"];
         const password = jsonData["password"];
-
-        if (!username || !password)
-        {
-            c.status(400);
-            return c.json({code: 400, message: "Invalid user parameters."});
-        }
+        const userId = jsonData["user"];
+        const key = c.req.header("authKey");
         
-        const userExitsRef = doc(db, "user", username);
-        const docSnap = await getDoc(userExitsRef);
-
-        if (!docSnap.exists())
-        {
-            c.status(404);
-            return c.json({error: 404, message: `User ${username} not found.`});
-        }
-
-        if (docSnap.data()["banned"])
-        {
-            return c.json({code: 403, message: `User ${username} is banned.`}, 403);
-        }
-
-        const hash = docSnap.data()["password"];
-
-        if (!await checkHashedPassword(hash, password))
-        {
-            c.status(403);
-            return c.json({error: 403, message: `Password for user ${username} is invalid.`});
-        }
-
-        const isAdmin = docSnap.data()["isAdmin"];
-
-        if (!isAdmin)
-        {
-            return c.json({error: 403, message: `Invalid permissions for user ${username}.`}, 403);
-        }
-
-        await next();
-    };
-}
-
-export const AdminKeyMiddleware = ():MiddlewareHandler => {
-    return async (c, next) => {
-        let userId = c.req.query("user");
-
-        if (!userId)
-        {
-            const json = await c.req.json();
-            userId = json["user"];
-        }
-
-        if (!userId)
-        {
-            userId = c.req.header("user");
-        }
-
-        const authKey = c.req.header("authKey");
-
-        if (!userId || !authKey)
-        {
-            c.status(400);
-            return c.json({code: 400, message: "Invalid user parameters."})
-        }
-
-        const userTokens = await token.getTokenFromUserId(userId);
-
-        if (userTokens != authKey)
-        {
-            c.status(401);
-            return c.json({code: 401, message: "Invalid or expired Authentication Key."});
-        }
-
-        const username = accountUtil.getUsernameFromUserID(userId);
-
-        const userRef = doc(db, "user", username);
-        const userSnap = await getDoc(userRef);
-
-        if (userSnap.data()["banned"])
-        {
-            return c.json({code: 403, message: `User ${username} is banned.`}, 403);
-        }
-
-        if (!userSnap.data()["isAdmin"])
-        {
-            return c.json({code: 403, message: `Not enough permissions for user ${username}.`}, 403);
-        }
-
-        await next();
-    };
-}
-
-export const AuthKeyMiddleware = ():MiddlewareHandler => {
-    return async (c, next) => {
-
-
-        let userId = c.req.query("user");
-
-        if (!userId)
-        {
-            try {
-                const json = await c.req.json();
-                userId = json["user"];
+        if (username && password) {
+            const userExitsRef = doc(db, "user", username);
+            const docSnap = await getDoc(userExitsRef);
+       
+            if (!docSnap.exists()) {
+                c.status(404);
+                return c.json({
+                    error: 404,
+                    message: `User ${username} not found.`
+                });
             }
-            catch (e)
-            {}
+       
+            if (docSnap.data()["banned"]) {
+                return c.json({
+                    code: 403,
+                    message: `User ${username} is banned.`
+                }, 403);
+            }
+       
+            const hash = docSnap.data()["password"];
+       
+            if (!await checkHashedPassword(hash, password)) {
+                c.status(403);
+                return c.json({
+                    code: 403,
+                    message: `Password for user ${username} is invalid.`
+                });
+            }
+       
+            const isAdmin = docSnap.data()["isAdmin"];
+       
+            if (!isAdmin) {
+                return c.json({
+                    code: 403,
+                    message: `Invalid permissions for user ${username}.`
+                }, 403);
+            }
         }
-
-        if (!userId)
+        else if (userId && key)
         {
-            userId = c.req.header("user");
+            const username = await accountUtil.getUsernameFromUserID(userId);
+            if (!username || username == "")
+            {  
+                return c.json({code: 404, message: `User '${userId}' not found.`}, 404);
+            }
+            const correctKey = await token.getTokenFromUserId(userId);
+
+            if (key != correctKey)
+            {
+                return c.json({code: 403, message: `Authentication key '${key}' incorrect.`}, 403) 
+            }
+
+            const userRef = doc(db, "user", username);
+            const userSnap = await getDoc(userRef);
+
+            if (!userSnap.data()["isAdmin"])
+            {
+                return c.json({code: 403, message: `Invalid permissions for user '${username}'`}, 403)
+            }
         }
-
-        const authKey = c.req.header("authKey");
-
-        if (!userId || !authKey)
+        else if (!key && !userId && !username && !password)
         {
-            c.status(400);
-            return c.json({code: 400, message: "Invalid user parameters."})
-        }
-
-        const userTokens = await token.getTokenFromUserId(userId);
-
-        if (userTokens != authKey)
-        {
-            c.status(401);
-            return c.json({code: 401, message: "Invalid or expired Authentication Key."});
+            return c.json({code: 400, message: "Invalid user parameters."}, 403);
         }
 
         await next();
-
     };
-};
+}
 
 export const UsernamePasswordMiddleware = ():MiddlewareHandler => {
     return async (c, next) => {
@@ -182,41 +122,59 @@ export const UsernamePasswordMiddleware = ():MiddlewareHandler => {
 
         const username = jsonData["username"];
         const password = jsonData["password"];
+        const key = c.req.header("authKey");
+        const user = c.req.header("user");
 
-        if (!username || !password)
-        {
-            c.status(400);
-            return c.json({code: 400, message: "Invalid user parameters."});
-        }
+        if (username && password) {
+
+            if (!username || !password) {
+                c.status(400);
+                return c.json({ code: 400, message: "Invalid user parameters." });
+            }
         
-        const userExitsRef = doc(db, "user", username);
-        const docSnap = await getDoc(userExitsRef);
-
-        if (docSnap.data()["banned"])
-        {
-            return c.json({code: 403, message: `User ${username} is banned.`}, 403);
+            const userExitsRef = doc(db, "user", username);
+            const docSnap = await getDoc(userExitsRef);
+        
+            if (docSnap.data()["banned"]) {
+                return c.json({ code: 403, message: `User ${username} is banned.` }, 403);
+            }
+        
+            if (!docSnap.exists()) {
+                c.status(404);
+                return c.json({ error: 404, message: `User ${username} not found.` });
+            }
+        
+            const hash = docSnap.data()["password"];
+        
+            if (!await checkHashedPassword(hash, password)) {
+                c.status(403);
+                return c.json({ error: 403, message: `Password for user ${username} is invalid.` });
+            }
         }
-
-        if (!docSnap.exists())
+        else if (key && user)
         {
-            c.status(404);
-            return c.json({error: 404, message: `User ${username} not found.`});
+            const username = await accountUtil.getUsernameFromUserID(user);
+            if (!username || username == "")
+            {
+                return c.json({code: 404, message: `User ${user} not found.`}, 404);
+            }
+
+            const correctKey = await token.getTokenFromUserId(user);
+
+            if (correctKey != key)
+            {
+                return c.json({code: 403, message: `Invalid permissions for user '${username}'`}, 403);
+            }
         }
-
-        const hash = docSnap.data()["password"];
-
-        if (!await checkHashedPassword(hash, password))
+        else if (!key && !user && !username && !password)
         {
-            c.status(403);
-            return c.json({error: 403, message: `Password for user ${username} is invalid.`});
+            return c.json({code: 400, message: "Invalid user parameters."}, 400);
         }
 
         await next();
     };
 };
 
-export const userpassAuth = UsernamePasswordMiddleware();
+export const userAuth = UsernamePasswordMiddleware();
 export const adminAuth = AdminMiddleware();
-export const adminKeyAuth = AdminKeyMiddleware();
-export const keyAuth = AuthKeyMiddleware();
 export const ratelimitAuth = RateLimitedMiddleware();
