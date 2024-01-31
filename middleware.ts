@@ -47,7 +47,7 @@ export const AdminMiddleware = ():MiddlewareHandler => {
         const userId = jsonData["user"];
         const key = c.req.header("authKey");
         
-        if (username && password) {
+        if (username != null && password != null) {
             const userExitsRef = doc(db, "user", username);
             const docSnap = await getDoc(userExitsRef);
        
@@ -85,7 +85,7 @@ export const AdminMiddleware = ():MiddlewareHandler => {
                 }, 403);
             }
         }
-        else if (userId && key)
+        else if (userId != null && key != null)
         {
             const username = await accountUtil.getUsernameFromUserID(userId);
             if (!username || username == "")
@@ -108,7 +108,7 @@ export const AdminMiddleware = ():MiddlewareHandler => {
                 return c.json({code: 403, message: `Invalid permissions for user '${username}'`}, 403)
             }
         }
-        else if (!key && !userId && !username && !password)
+        else if (key == null && userId == null && username == null && password == null)
         {
             return c.json({code: 400, message: "Invalid user parameters."}, 403);
         }
@@ -126,7 +126,7 @@ export const UsernamePasswordMiddleware = ():MiddlewareHandler => {
         const key = c.req.header("authKey");
         const user = c.req.header("user");
 
-        if (username && password) {
+        if (username != null && password != null) {
 
             if (!username || !password) {
                 c.status(400);
@@ -152,7 +152,7 @@ export const UsernamePasswordMiddleware = ():MiddlewareHandler => {
                 return c.json({ error: 403, message: `Password for user ${username} is invalid.` });
             }
         }
-        else if (key && user)
+        else if (user != null && key != null)
         {
             const username = await accountUtil.getUsernameFromUserID(user);
             if (!username || username == "")
@@ -167,7 +167,7 @@ export const UsernamePasswordMiddleware = ():MiddlewareHandler => {
                 return c.json({code: 403, message: `Invalid permissions for user '${username}'`}, 403);
             }
         }
-        else if (!key && !user && !username && !password)
+        else if (key == null && userId == null && username == null && password == null)
         {
             return c.json({code: 400, message: "Invalid user parameters."}, 400);
         }
