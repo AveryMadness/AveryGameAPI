@@ -44,7 +44,7 @@ export const AdminMiddleware = ():MiddlewareHandler => {
 
         const username = jsonData["username"];
         const password = jsonData["password"];
-        const userId = jsonData["user"];
+        const userId = c.req.header("user");
         const key = c.req.header("authKey");
         
         if (username != null && password != null) {
@@ -108,7 +108,7 @@ export const AdminMiddleware = ():MiddlewareHandler => {
                 return c.json({code: 403, message: `Invalid permissions for user '${username}'`}, 403)
             }
         }
-        else if (key == null && userId == null && username == null && password == null)
+        else if ((key == null && userId == null) || (username == null && password == null))
         {
             return c.json({code: 400, message: "Invalid user parameters."}, 403);
         }
@@ -167,7 +167,7 @@ export const UsernamePasswordMiddleware = ():MiddlewareHandler => {
                 return c.json({code: 403, message: `Invalid permissions for user '${username}'`}, 403);
             }
         }
-        else if (key == null && userId == null && username == null && password == null)
+        else if ((key == null && user == null) || (username == null && password == null))
         {
             return c.json({code: 400, message: "Invalid user parameters."}, 400);
         }
