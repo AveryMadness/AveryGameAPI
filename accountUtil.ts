@@ -3,6 +3,13 @@ import { db } from "./database.ts";
 import { logger } from "./util.ts";
 import { HonoRequest } from "https://deno.land/x/hono@v3.8.1/mod.ts";
 
+export enum UserRole
+{
+    User = 100,
+    BetaTester = 200,
+    Administrator = 300
+}
+
 export async function getAccountDataFromID(userId:string):Promise<Object | undefined>
 {
     const q = query(collection(db, "user"), where("id", "==", userId));

@@ -30,7 +30,7 @@ export default async function() {
         return c.json({code: 200, message: "Success", isMaintenance: bIsMaintenanceMode, timeSinceMaintenance: bIsMaintenanceMode ? MaintenanceTime.toISOString() : null}, 200);
     });
 
-    router.post("/updateSourceFiles", adminAuth, async (c) => {
+    router.post("/internal/updateSourceFiles", adminAuth, async (c) => {
         logger.warn(`User ${(await c.req.json())["username"]} is updating source files!`);
         const p = new Deno.Command("git", {args: ["pull"], stdout: 'piped'}).spawn();
 

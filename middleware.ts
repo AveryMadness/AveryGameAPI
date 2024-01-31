@@ -102,6 +102,7 @@ export const AdminMiddleware = ():MiddlewareHandler => {
             const userRef = doc(db, "user", username);
             const userSnap = await getDoc(userRef);
 
+            return c.text(userSnap.data()["isAdmin"]);
             if (!userSnap.data()["isAdmin"])
             {
                 return c.json({code: 403, message: `Invalid permissions for user '${username}'`}, 403)
