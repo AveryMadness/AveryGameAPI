@@ -9,6 +9,12 @@ import auth from "./routes/auth.ts";
 
 const rateLimits:string[] = [];
 
+export const ServiceMiddleware = (service:string):MiddlewareHandler => {
+    return async (c, next) => {
+        
+    };
+};
+
 export const RateLimitedMiddleware = ():MiddlewareHandler => {
     return async (c, next) => {
         const address = await c.req.header("cf-connecting-ip") ?? "";

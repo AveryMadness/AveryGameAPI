@@ -52,12 +52,21 @@ app.onError((err, c) => {
   }, 500);
 });
 
+app.use("*", async (c, next) => {
+  console.log(`[${c.req.method}] ${c.req.url}`);
+  await next();
+});
+
 app.use(
   '/api/*',
   cors({
     origin: "*",
   })
 );
+
+app.notFound((c) => {
+  return c.json({code: 404, message: "Not Found"});
+});
   
 app.route("/api/v1/account", await (await import("./routes/account.ts")).default());
 app.route("/api/v1/authentication", await (await import("./routes/auth.ts")).default());

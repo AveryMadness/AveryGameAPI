@@ -192,7 +192,7 @@ export default async function() {
             return c.json({code: 404, message: `User ${username} not found.`}, 404);
         }
 
-        return c.json({code: 200, message: "Success", hasPermission: userSnap.data()["betaTester"] || userSnap.data()["isAdmin"]}, 200);
+        return c.json({code: 200, message: "Success", hasPermission: userSnap.data()["role"] >= accountUtil.UserRole.BetaTester}, 200);
     });
 
     router.post("/authenticateUserForBeta", userAuth, async (c) => {
