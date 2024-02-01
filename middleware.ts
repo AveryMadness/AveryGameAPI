@@ -40,12 +40,17 @@ export const RateLimitedMiddleware = ():MiddlewareHandler => {
 
 export const AdminMiddleware = ():MiddlewareHandler => {
     return async (c, next) => {
-        const jsonData = await c.req.json();
-
-        const username = jsonData["username"];
-        const password = jsonData["password"];
+        let username = null;
+        let password = null;
         const userId = c.req.header("user");
         const key = c.req.header("authKey");
+        if (c.req.method == "POST")
+        {
+        const jsonData = await c.req.json();
+
+        username = jsonData["username"];
+        password = jsonData["password"];
+       
         
         if (username != null && password != null) {
             const userExitsRef = doc(db, "user", username);
@@ -59,7 +64,7 @@ export const AdminMiddleware = ():MiddlewareHandler => {
                 });
             }
        
-            if (docSnap.data()["banned"]) {
+            if (docSnap.data()["userStatus"] == accountUtil.UserStatus.Banned) {
                 return c.json({
                     code: 403,
                     message: `User ${username} is banned.`
@@ -76,14 +81,15 @@ export const AdminMiddleware = ():MiddlewareHandler => {
                 });
             }
        
-            const isAdmin = docSnap.data()["isAdmin"];
+           
        
-            if (!isAdmin) {
+            if (docSnap.data()["role"] < accountUtil.UserRole.Administrator) {
                 return c.json({
                     code: 403,
                     message: `Invalid permissions for user ${username}.`
                 }, 403);
             }
+        }
         }
         else if (userId != null && key != null)
         {
@@ -102,7 +108,14 @@ export const AdminMiddleware = ():MiddlewareHandler => {
             const userRef = doc(db, "user", username);
             const userSnap = await getDoc(userRef);
 
-            if (!userSnap.data()["isAdmin"])
+            if (userSnap.data()["userStatus"] == accountUtil.UserStatus.Banned) {
+                return c.json({
+                    code: 403,
+                    message: `User ${username} is banned.`
+                }, 403);
+            }
+
+            if (userSnap.data()["role"] < accountUtil.UserRole.Administrator) 
             {
                 return c.json({code: 403, message: `Invalid permissions for user '${username}'`}, 403)
             }
@@ -118,57 +131,77 @@ export const AdminMiddleware = ():MiddlewareHandler => {
 
 export const UsernamePasswordMiddleware = ():MiddlewareHandler => {
     return async (c, next) => {
+        let username = null;
+        let password = null;
+        const userId = c.req.header("user");
+        const key = c.req.header("authKey");
+        if (c.req.method == "POST")
+        {
         const jsonData = await c.req.json();
 
-        const username = jsonData["username"];
-        const password = jsonData["password"];
-        const key = c.req.header("authKey");
-        const user = c.req.header("user");
-
-        if (username != null && password != null) {
-
-            if (!username || !password) {
-                c.status(400);
-                return c.json({ code: 400, message: "Invalid user parameters." });
-            }
+        username = jsonData["username"];
+        password = jsonData["password"];
+       
         
+        if (username != null && password != null) {
             const userExitsRef = doc(db, "user", username);
             const docSnap = await getDoc(userExitsRef);
-        
-            if (docSnap.data()["banned"]) {
-                return c.json({ code: 403, message: `User ${username} is banned.` }, 403);
-            }
-        
+       
             if (!docSnap.exists()) {
                 c.status(404);
-                return c.json({ error: 404, message: `User ${username} not found.` });
+                return c.json({
+                    error: 404,
+                    message: `User ${username} not found.`
+                });
             }
-        
+       
+            if (docSnap.data()["userStatus"] == accountUtil.UserStatus.Banned) {
+                return c.json({
+                    code: 403,
+                    message: `User ${username} is banned.`
+                }, 403);
+            }
+       
             const hash = docSnap.data()["password"];
-        
+       
             if (!await checkHashedPassword(hash, password)) {
                 c.status(403);
-                return c.json({ error: 403, message: `Password for user ${username} is invalid.` });
+                return c.json({
+                    code: 403,
+                    message: `Password for user ${username} is invalid.`
+                });
             }
+    
         }
-        else if (user != null && key != null)
+        }
+        else if (userId != null && key != null)
         {
-            const username = await accountUtil.getUsernameFromUserID(user);
+            const username = await accountUtil.getUsernameFromUserID(userId);
             if (!username || username == "")
+            {  
+                return c.json({code: 404, message: `User '${userId}' not found.`}, 404);
+            }
+            const correctKey = await token.getTokenFromUserId(userId);
+
+            if (key != correctKey)
             {
-                return c.json({code: 404, message: `User ${user} not found.`}, 404);
+                return c.json({code: 403, message: `Authentication key '${key}' incorrect.`}, 403) 
             }
 
-            const correctKey = await token.getTokenFromUserId(user);
+            const userRef = doc(db, "user", username);
+            const userSnap = await getDoc(userRef);
 
-            if (correctKey != key)
-            {
-                return c.json({code: 403, message: `Invalid permissions for user '${username}'`}, 403);
+            if (userSnap.data()["userStatus"] == accountUtil.UserStatus.Banned) {
+                return c.json({
+                    code: 403,
+                    message: `User ${username} is banned.`
+                }, 403);
             }
+
         }
-        else if ((key == null && user == null) || (username == null && password == null))
+        else if ((key == null && userId == null) || (username == null && password == null))
         {
-            return c.json({code: 400, message: "Invalid user parameters."}, 400);
+            return c.json({code: 400, message: "Invalid user parameters."}, 403);
         }
 
         await next();

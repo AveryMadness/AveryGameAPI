@@ -1,15 +1,101 @@
 import { Hono } from "https://deno.land/x/hono@v3.8.1/mod.ts";
 import * as accountUtil from "../accountUtil.ts";
-import { _EmptyAppCheckTokenProvider, deleteDoc, doc, getDoc, setDoc, updateDoc } from "https://www.gstatic.com/firebasejs/9.8.1/firebase-firestore.js";
+import { DocumentReference, DocumentSnapshot, _EmptyAppCheckTokenProvider, collection, deleteDoc, doc, getDoc, getDocs, setDoc, updateDoc } from "https://www.gstatic.com/firebasejs/9.8.1/firebase-firestore.js";
 import { db } from "../database.ts";
 import { adminAuth } from "../middleware.ts";
 import { logger } from "../util.ts";
 import { to } from "https://deno.land/x/optic@1.3.11/logger/profileMeasure.ts";
 import { toPathString } from "https://deno.land/std@0.206.0/fs/_util.ts";
+import { UserRole, UserStatus } from "../accountUtil.ts";
+import * as account from "./account.ts";
+import * as token from "../token.ts";
+import { SmtpClient } from "https://deno.land/x/smtp/mod.ts";
 
 export let bIsMaintenanceMode = false;
 export default async function() {
     const router = new Hono();
+
+    router.get("/pending/:user", adminAuth, async (c) => {
+        const { user } = c.req.param();
+
+        if (!user)
+        {
+            return c.json({code: 400, message: "bruh"}, 400);
+        }
+
+        const ref = doc(db, "pendingUsers", user);
+        const snap = await getDoc(ref);
+
+        if (!snap.exists())
+        {
+            return c.json({code: 404, message: `User ${user} not found.`}, 404);
+        }
+
+        return c.json({code: 200, message: "Success", user: {
+            username: snap.data()["username"],
+            email: snap.data()["email"],
+            bio: snap.data()["bio"],
+        }});
+    });
+
+    router.get("/pending/getPendingUsers", adminAuth, async (c) => {
+        const pendingUsersRef = collection(db, "pendingUsers");
+        const pendingUsers = await getDocs(pendingUsersRef);
+
+        const retVal:object[] = [];
+        pendingUsers.forEach(async (doc:DocumentSnapshot) => {
+            retVal.push(doc.id);
+        }, null);
+
+        return c.json({code: 200, message: "Success", pendingUsers: retVal});
+    });
+
+    router.post("/pending/acceptPendingUser", adminAuth, async (c) => {
+        const postData = await c.req.json();
+        const username = postData["username"];
+        const email = postData["email"];
+        const bio = postData["bio"];
+        const password = postData["password"];
+
+        await accountUtil.acceptPendingUser(username, email, password);
+
+        return c.json({code: 200, message: "Success"});
+    });
+
+    router.post("/pending/denyPendingUser", adminAuth, async (c) => {
+        const postData = await c.req.json();
+        const user = postData["user"];
+
+        const thing = doc(db, "pendingUsers", user);
+        const snap = await getDoc(thing);
+
+        if (!snap.exists())
+        {
+            return c.json({code: 404, message: `User ${user} not found.`}, 404);
+        }
+
+        await deleteDoc(thing);
+
+        const client = new SmtpClient();
+
+        await client.connect({
+            hostname: "smtp.gmail.com",
+            port: 465,
+            username: "averymadness62@gmail.com",
+            password: Deno.env.get("SMTP_PASS")
+        });
+
+        await client.send({
+            from: "averygame.averymadness.me",
+            to: snap.data()["email"],
+            subject: "Avery Game user submission",
+            content: "Your Avery Game user submission has been denied."
+        });
+
+        await client.close();
+
+        return c.json({code: 200, message: "Success"});
+    });
 
     router.post("/internal/getMemoryUsage", adminAuth, async (c) => {
        const memUsage = Deno.memoryUsage();

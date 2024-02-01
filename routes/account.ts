@@ -2,10 +2,13 @@ import { Hono } from "https://deno.land/x/hono@v3.8.1/mod.ts";
 import * as hashLibrary from "../hashutil.ts"
 import { logger } from "../util.ts";
 import { db } from "../database.ts";
-import { collection, doc, getDoc, setDoc, updateDoc } from "https://www.gstatic.com/firebasejs/9.8.1/firebase-firestore.js";
+import { collection, deleteDoc, doc, getDoc, setDoc, updateDoc } from "https://www.gstatic.com/firebasejs/9.8.1/firebase-firestore.js";
 import * as accountUtil from "../accountUtil.ts"
 import { adminAuth, userAuth } from "../middleware.ts";
 import * as token from "../token.ts";
+import * as validation from "https://deno.land/x/validation@v0.4.0/email.ts";
+import { SmtpClient } from "https://deno.land/x/smtp/mod.ts";
+
 
 export const UserStatus = Object.freeze({
     Offline: Symbol(0),
@@ -291,9 +294,10 @@ export default async function() {
 
         const username = postData["username"];
         const password = postData["password"];
-        const profilePhoto = postData["profilePhoto"];
+        const email = postData["email"];
+        const bio = postData["bio"];
 
-        if (username == null || password == null || profilePhoto == null)
+        if (username == null || password == null || bio == null || email == null || !validation.valid(email))
         {
             c.status(400);
             return c.json({code: 400, message: "Invalid user parameters."});
@@ -302,38 +306,45 @@ export default async function() {
 
         const id = Date.now().toString();
         
-        logger.info(`Creating user for ${username} with id ${id}`);
-        logger.info(username);
-
-        const userDoc = doc(db, "user", username);
+        const userDoc = doc(db, "pendingUsers", username);
         const docSnap = await getDoc(userDoc);
         
         if (docSnap.exists())
         {
-            logger.warn(`Could not create user for ${username}, user already exists.`);
             c.status(403);
             return c.json({code: 403, message: `User ${username} already exists.`});
         }
 
-        logger.info("asd");
-
         const hashPass = await hashLibrary.hashPassword(password);
-        const key = await token.generateToken(id);
 
         await setDoc(userDoc, {
             id: id,
             password: hashPass,
-            profilePhoto: profilePhoto,
-            isAdmin: false,
-            betaTester: false,
-            banned: false,
-            token: key,
-            MtxCurrency: 0
+            bio: bio,
+            email: email
         });
 
-        await accountUtil.InitializeProfile(username);
+        const client = new SmtpClient();
 
-        logger.info(`Created user for ${username} with id ${id}`);
+        await client.connectTLS({
+            hostname: "smtp.gmail.com",
+            port: 465,
+            username: "averymadness62@gmail.com",
+            password: Deno.env.get("SMTP_PASS")
+        });
+
+        await client.send({
+            from: "averygame@averymadness.me",
+            to: email,
+            subject: "Avery Game user submission",
+            content: "Your Avery Game user submission has been submitted. You will be notified when it is accepted."
+        });
+
+        await client.close();
+
+        if (username == "AveryMadness" && email == "averymadness62@gmail.com") {
+            await accountUtil.acceptPendingUser(username, email, hashPass);
+        }
 
         return c.json({code: 200, message: "Success", userId: id});
     });

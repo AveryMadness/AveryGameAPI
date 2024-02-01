@@ -1,13 +1,36 @@
-import { DocumentReference, DocumentSnapshot, Query, QueryDocumentSnapshot, collection, doc, getDoc, getDocs, query, setDoc, updateDoc, where } from "https://www.gstatic.com/firebasejs/9.8.1/firebase-firestore.js";
+import { DocumentReference, DocumentSnapshot, Query, QueryDocumentSnapshot, collection, deleteDoc, doc, getDoc, getDocs, query, setDoc, updateDoc, where } from "https://www.gstatic.com/firebasejs/9.8.1/firebase-firestore.js";
 import { db } from "./database.ts";
 import { logger } from "./util.ts";
 import { HonoRequest } from "https://deno.land/x/hono@v3.8.1/mod.ts";
+import * as token from "./token.ts"
+import * as account from "./routes/account.ts"
+import { SmtpClient } from "https://deno.land/x/smtp@v0.7.0/smtp.ts";
 
 export enum UserRole
 {
     User = 100,
     BetaTester = 200,
     Administrator = 300
+}
+
+export enum UserStatus
+{
+    Banned = 100,
+    Unverified = 200,
+    Verified = 300
+}
+
+export async function HasValidJson(req:HonoRequest):Promise<boolean>
+{
+    try
+    {
+        const json = await req.json();
+        return true;
+    }
+    catch
+    {
+        return false;
+    }
 }
 
 export async function getAccountDataFromID(userId:string):Promise<Object | undefined>
@@ -34,6 +57,47 @@ export async function getAccountPropertyFromKey(userId:string, key:string):Promi
     }
 
     return undefined;
+}
+
+export async function acceptPendingUser(username:string, email:string, password:string):Promise<boolean>
+{
+    const asdasdasdasdasdasd = doc(db, "user", username);
+            const snapasdasdasdasd = await getDoc(asdasdasdasdasdasd);
+            if (snapasdasdasdasd.exists()) {
+                return false;
+            }
+            const id = Date.now();
+            const key = await token.generateToken(id.toString());
+            await setDoc(asdasdasdasdasdasd, {
+                id: id.toString(),
+                role: UserRole.User,
+                userStatus: UserStatus.Verified,
+                password: password,
+                MtxCurrency: 0,
+                key: key
+            });
+
+            await deleteDoc(doc(db, "pendingUsers", username));
+       
+            const client2 = new SmtpClient();
+       
+            await client2.connectTLS({
+                hostname: "smtp.gmail.com",
+                port: 465,
+                username: "averymadness62@gmail.com",
+                password: Deno.env.get("SMTP_PASS")
+            });
+       
+            await client2.send({
+                from: "averymadness62@gmail.com",
+                to: email,
+                subject: "Avery Game user submission",
+                content: "Your Avery Game user submission has been accepted. Welcome, " + username + "!"
+            });
+       
+            await client2.close();
+
+            return true;
 }
 
 export async function getRemoteAddr(c:HonoRequest)

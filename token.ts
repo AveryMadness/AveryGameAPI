@@ -22,7 +22,7 @@ export async function generateToken(userId:string, force:boolean = false)
     const userRef = doc(db, "user", username);
     const userSnap = await getDoc(userRef);
 
-    const token = userSnap.data()["token"];
+    const token = userSnap.data()["key"];
 
     if (!token || force)
     {
@@ -73,5 +73,5 @@ export async function getTokenFromUserId(userId:string):Promise<string>
     const userRef = doc(db, "user", username);
     const userSnap = getDoc(userRef);
     
-    return (await userSnap).data()["token"];
+    return (await userSnap).data()["key"];
 }
