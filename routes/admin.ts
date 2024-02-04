@@ -10,12 +10,14 @@ import { UserRole, UserStatus } from "../accountUtil.ts";
 import * as account from "./account.ts";
 import * as token from "../token.ts";
 import { SmtpClient } from "https://deno.land/x/smtp/mod.ts";
+import { ServiceMiddleware } from "../middleware.ts";
+
 
 export let bIsMaintenanceMode = false;
 export default async function() {
     const router = new Hono();
 
-    router.get("/pending/:user", adminAuth, async (c) => {
+    router.get("/pending/:user", ServiceMiddleware("getPendingUsers"), adminAuth, async (c) => {
         const { user } = c.req.param();
 
         if (!user)
@@ -38,7 +40,7 @@ export default async function() {
         }});
     });
 
-    router.get("/pending/getPendingUsers", adminAuth, async (c) => {
+    router.get("/pending/getPendingUsers", ServiceMiddleware("getPendingUsers"), adminAuth, async (c) => {
         const pendingUsersRef = collection(db, "pendingUsers");
         const pendingUsers = await getDocs(pendingUsersRef);
 
@@ -50,7 +52,7 @@ export default async function() {
         return c.json({code: 200, message: "Success", pendingUsers: retVal});
     });
 
-    router.post("/pending/acceptPendingUser", adminAuth, async (c) => {
+    router.post("/pending/acceptPendingUser", ServiceMiddleware("acceptDenyPendingUser"), adminAuth, async (c) => {
         const postData = await c.req.json();
         const username = postData["username"];
         const email = postData["email"];
@@ -62,7 +64,7 @@ export default async function() {
         return c.json({code: 200, message: "Success"});
     });
 
-    router.post("/pending/denyPendingUser", adminAuth, async (c) => {
+    router.post("/pending/denyPendingUser", ServiceMiddleware("acceptDenyPendingUser"), adminAuth, async (c) => {
         const postData = await c.req.json();
         const user = postData["user"];
 
@@ -97,7 +99,7 @@ export default async function() {
         return c.json({code: 200, message: "Success"});
     });
 
-    router.post("/internal/getMemoryUsage", adminAuth, async (c) => {
+    router.post("/internal/getMemoryUsage", ServiceMiddleware("getMemoryUsage"), adminAuth, async (c) => {
        const memUsage = Deno.memoryUsage();
        return c.json({code: 200, message: "Success", rss: memUsage.rss, heapUsed: memUsage.heapUsed, heapTotal: memUsage.heapTotal}, 200); 
     });
@@ -116,7 +118,7 @@ export default async function() {
         return c.json({code: 200, message: "Success", isMaintenance: bIsMaintenanceMode, timeSinceMaintenance: bIsMaintenanceMode ? MaintenanceTime.toISOString() : null}, 200);
     });
 
-    router.post("/internal/updateSourceFiles", adminAuth, async (c) => {
+    router.post("/internal/updateSourceFiles", ServiceMiddleware("updateSourceFiles"), adminAuth, async (c) => {
         logger.warn(`User ${(await c.req.json())["username"]} is updating source files!`);
         const p = new Deno.Command("git", {args: ["pull"], stdout: 'piped'}).spawn();
 
@@ -144,7 +146,7 @@ export default async function() {
         return c.text("Not implemented");
     });
 
-    router.post("/offer/createOffer", adminAuth, async (c) => {
+    router.post("/offer/createOffer", ServiceMiddleware("createOffer"), adminAuth, async (c) => {
         const postData = await c.req.json();
         const username = postData.username;
         const offer = postData.offer;
@@ -185,7 +187,7 @@ export default async function() {
         return c.json({code: 200, message: "Success"});
     });
 
-    router.post("/flags/setEventFlag", adminAuth, async (c) => {
+    router.post("/flags/setEventFlag", ServiceMiddleware("setOrDeleteEventFlag"), adminAuth, async (c) => {
         const postData = await c.req.json();
         const flag = postData.flag;
         const value = postData["value"];
@@ -209,7 +211,7 @@ export default async function() {
         return c.json({code: 200, message: "Success"}, 200);
     });
 
-    router.post("/flags/delete/:flag", adminAuth, async (c) => {
+    router.post("/flags/delete/:flag", ServiceMiddleware("setOrDeleteEventFlag"), adminAuth, async (c) => {
         const postData = await c.req.json();
         
         const {flag} = c.req.param();
@@ -232,7 +234,7 @@ export default async function() {
         return c.json({code: 200, message: "Success"}, 200);
     });
 
-    router.post("/news/deletePost", adminAuth, async (c) => {
+    router.post("/news/deletePost", ServiceMiddleware("createOrDeleteNewsPost"), adminAuth, async (c) => {
         const postData = await c.req.json();
         const postId = postData["id"];
 
@@ -254,7 +256,7 @@ export default async function() {
         return c.json({code: 200, message: "Success"});
     })
 
-    router.post("/news/createPost", adminAuth, async (c) => {
+    router.post("/news/createPost", ServiceMiddleware("createOrDeleteNewsPost"), adminAuth, async (c) => {
         const postData = await c.req.json();
         const content = postData["content"];
         const title = postData["title"];
@@ -326,7 +328,7 @@ export default async function() {
         
     });
 
-    router.post("/deleteUser", adminAuth, async (c) => {
+    router.post("/deleteUser", ServiceMiddleware("deleteUser"), adminAuth, async (c) => {
         const jsonData = await c.req.json();
         const toDelete = jsonData["toDelete"];
         const deleterUsername = jsonData["username"];
@@ -393,7 +395,8 @@ export default async function() {
         }
     });
 
-    router.post("/setAdmin", adminAuth, async (c) => {
+    
+    router.post("/setAdmin", ServiceMiddleware("setAdmin"), adminAuth, async (c) => {
         const postData = await c.req.json();
         const userToSet = postData["user"];
         const valueToSet = postData["admin"];
@@ -415,14 +418,14 @@ export default async function() {
         const userRef = doc(db, "user", username);
         
         await updateDoc(userRef, {
-            isAdmin: actualValue
+            role: accountUtil.UserRole.Administrator
         });
 
         return c.json({code: 200, message: "Success"}, 200);
 
     });
 
-    router.post("/setBanned", adminAuth, async (c) => {
+    router.post("/setBanned", ServiceMiddleware("banUser"), adminAuth, async (c) => {
         const postData = await c.req.json();
         const userToSet = postData["user"];
         const valueToSet = postData["banned"];
@@ -471,9 +474,16 @@ export default async function() {
         }
 
         const userRef = doc(db, "user", username);
+        const userSnap = await getDoc(userRef);
+
+        if (userSnap.data()["role"] == UserRole.Administrator)
+        {
+            return c.json({code: 200, message: "Success"});
+        }
+        
         
         await updateDoc(userRef, {
-            betaTester: actualValue
+            role: accountUtil.UserRole.BetaTester
         });
 
         return c.json({code: 200, message: "Success"}, 200);

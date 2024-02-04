@@ -53,8 +53,19 @@ app.onError((err, c) => {
 });
 
 app.use("*", async (c, next) => {
-  console.log(`[${c.req.method}] ${c.req.url}`);
   await next();
+
+  if (Deno.args.includes("-dev"))
+  {
+    if (c.res.status == 200)
+    {
+      logger.debug(`[${c.req.method}] ${c.req.url} - ${c.res.status}`);
+    }
+    else
+    {
+      logger.error(`[${c.req.method}] ${c.req.url} - ${c.res.status}`);
+    }
+  }
 });
 
 app.use(

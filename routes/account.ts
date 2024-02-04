@@ -8,6 +8,7 @@ import { adminAuth, userAuth } from "../middleware.ts";
 import * as token from "../token.ts";
 import * as validation from "https://deno.land/x/validation@v0.4.0/email.ts";
 import { SmtpClient } from "https://deno.land/x/smtp/mod.ts";
+import { ServiceMiddleware } from "../middleware.ts";
 
 
 export const UserStatus = Object.freeze({
@@ -67,7 +68,7 @@ export default async function() {
 
     });
 
-    router.post("/authenticateAdmin", adminAuth, async (c) => {
+    router.post("/authenticateAdmin", ServiceMiddleware("login"), adminAuth, async (c) => {
         const postData = await c.req.json();
         const username = postData["username"];
 
@@ -127,7 +128,7 @@ export default async function() {
         return c.json({code: 200, message: "Success"});
     });
 
-    router.post("/authenticateAuthKey", async (c) => {
+    router.post("/authenticateAuthKey", ServiceMiddleware("login"), async (c) => {
         const postData = await c.req.json();
         const userId = postData["user"];
         const key = postData["key"];
@@ -142,7 +143,7 @@ export default async function() {
         return c.json({code: 200, message: "Success"}, 200);
     });
 
-    router.post("/authenticateAdminKey", adminAuth, async (c) => {
+    router.post("/authenticateAdminKey", ServiceMiddleware("login"), adminAuth, async (c) => {
         const postData = await c.req.json();
         const userId = postData["user"];
         const key = await token.generateToken(userId);
@@ -169,7 +170,7 @@ export default async function() {
         return c.json({code: 200, message: "Success", mtx: MtxCurrency ?? 0});
     });
 
-    router.get("getPermission", async (c) => {
+    router.get("getPermission", ServiceMiddleware("getBetaPermission"), async (c) => {
         const user = c.req.query("user");
 
         if (!user)
@@ -195,7 +196,7 @@ export default async function() {
         return c.json({code: 200, message: "Success", hasPermission: userSnap.data()["role"] >= accountUtil.UserRole.BetaTester}, 200);
     });
 
-    router.post("/authenticateUserForBeta", userAuth, async (c) => {
+    router.post("/authenticateUserForBeta", ServiceMiddleware("login"), userAuth, async (c) => {
         const postData = await c.req.json();
 
         const username = postData["username"];
@@ -228,7 +229,7 @@ export default async function() {
         return c.json({code: 500, message: "Internal profile error."});
     });
 
-    router.post("/authenticateUser", async (c) => {
+    router.post("/authenticateUser", ServiceMiddleware("login"), async (c) => {
         const postData = await c.req.json();
 
         const username = postData["username"];
@@ -289,7 +290,7 @@ export default async function() {
         
     });
 
-    router.post("/createUser", async (c) => {
+    router.post("/createUser", ServiceMiddleware("createUser"), async (c) => {
         const postData = await c.req.json();
 
         const username = postData["username"];

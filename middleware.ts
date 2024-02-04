@@ -6,12 +6,28 @@ import * as token from "./token.ts";
 import { logger } from "./util.ts";
 import * as accountUtil from "./accountUtil.ts"
 import auth from "./routes/auth.ts";
+import * as path from "https://deno.land/std@0.208.0/path/mod.ts";
+
+
+async function getJson(filePath: string) {
+    return JSON.parse(await Deno.readTextFile(filePath));
+}
 
 const rateLimits:string[] = [];
 
 export const ServiceMiddleware = (service:string):MiddlewareHandler => {
     return async (c, next) => {
-        
+        const services = await getJson(path.join("data", "services.json"));
+
+        const services2 = services.services;
+        const serviceSym = services2[service];
+
+        if (!serviceSym.enabled)
+        {
+            return c.json({code: 422, message: `'${serviceSym.displayName}' Service disabled.`});
+        }
+
+        await next();
     };
 };
 

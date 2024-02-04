@@ -7,6 +7,7 @@ import { db } from "../database.ts";
 import * as path from "https://deno.land/std@0.208.0/path/mod.ts";
 import { dirname } from "https://deno.land/std@0.206.0/path/dirname.ts";
 import { bIsMaintenanceMode } from "./admin.ts";
+import { ServiceMiddleware } from "../middleware.ts";
 
 async function getJson(filePath: string) {
     return JSON.parse(await Deno.readTextFile(filePath));
@@ -21,7 +22,7 @@ export default async function() {
         return c.json({code: 200, message: "You should never see this."});
     });
 
-    router.get("/hasItem", userAuth, async (c) => {
+    router.get("/hasItem", ServiceMiddleware("getItem"), userAuth, async (c) => {
         const item = c.req.query("item");
         const user = c.req.header("user") ?? "";
 
@@ -38,7 +39,7 @@ export default async function() {
         return c.json({code: 200, message: "Success", hasItem: itemSnap.exists()}, 200);
     });
 
-    router.post("/updateItem", userAuth, async (c) => {
+    router.post("/updateItem", ServiceMiddleware("updateItem"), userAuth, async (c) => {
         const postData = await c.req.json();
         const user = postData.user;
         const bNewItem = postData.bNewItem ?? false;
@@ -115,7 +116,7 @@ export default async function() {
 
     });
 
-    router.get("/getItem", userAuth, async (c) => {
+    router.get("/getItem", ServiceMiddleware("getItem"), userAuth, async (c) => {
         const user = c.req.header("user");
         const item = c.req.query("item");
 
@@ -137,7 +138,7 @@ export default async function() {
         return c.json({code: 200, message: "Success", count: userSnap.data()["count"] ?? 0, itemPath: userSnap.data()["itemPath"] ?? "", bIsWeapon: userSnap.data()["IsWeapon"] ?? false, bIsEquipped: userSnap.data()["IsEquipped"] ?? false, itemType: userSnap.data()["ItemType"] ?? "None"});
     });
 
-    router.get("/getEquippedWeapons", userAuth, async (c) => {
+    router.get("/getEquippedWeapons", ServiceMiddleware("getItem"), userAuth, async (c) => {
         const user = c.req.header("user");
 
         if (!user)
@@ -172,7 +173,7 @@ export default async function() {
         return c.json({code: 200, message: "Success", primary: primary, secondary: secondary, bHasPrimary: primaryExists, bHasSecondary: secondaryExists});
     });
 
-    router.post("/offer/claimOffer", userAuth, async (c) => {
+    router.post("/offer/claimOffer", ServiceMiddleware("claimOffer"), userAuth, async (c) => {
         const postData = await c.req.json();
         const user = postData.user;
         const offerId = postData.offer;
@@ -267,7 +268,7 @@ export default async function() {
         return c.json({code: 200, message: "Success", redemptionMessage: data.redemptionMessage});
     });
 
-    router.get("/offer/:offerid", async (c) => {
+    router.get("/offer/:offerid", ServiceMiddleware("getOffer"), async (c) => {
         let { offerid } = await c.req.param();
         offerid = decodeURIComponent(offerid);
 
@@ -301,7 +302,7 @@ export default async function() {
     
     });
 
-    router.get("/checkGameVersion", async (c) => {
+    router.get("/checkGameVersion", ServiceMiddleware("checkGameVersion"), async (c) => {
         const gameVersion = await c.req.query("version");
 
         if (bIsMaintenanceMode)
@@ -320,7 +321,7 @@ export default async function() {
         return c.json({code: 200, message: "Success", correctVersion: versions.includes(gameVersion), type: versions.includes(gameVersion) ? versions[gameVersion] : null});
     });
 
-    router.get("/getGameVersions", async (c) => {
+    router.get("/getGameVersions", ServiceMiddleware("getGameVersions"), async (c) => {
         const versions:object[] = [];
 
         var json = await getJson(path.join(".", "data", "version.json"));
@@ -338,7 +339,7 @@ export default async function() {
         return c.json({code: 200, message: "Success", versions: versions});
     });
 
-    router.get("/playlist/:playlistId", async (c) => {
+    router.get("/playlist/:playlistId", ServiceMiddleware("getPlaylist"), async (c) => {
         const { playlistId } = c.req.param();
 
         if (!playlistId)
@@ -358,7 +359,7 @@ export default async function() {
         return c.json({code: 200, message: "Success", playlist: {name: playlist["name"], description: playlist["description"], recommendedLevel: playlist["recommendedLevel"], minimumLevel: playlist["minimumLevel"] ?? 0, assetPath: playlist["assetPath"], overrideGameData: playlist["overrideGameData"] ?? false}});
     });
 
-    router.get("/getPlaylists", async (c) => {
+    router.get("/getPlaylists", ServiceMiddleware("getPlaylist"), async (c) => {
         const json = await getJson(path.join(".", "data", "playlist.json"));
 
         const playlists:string[] = [];
@@ -374,7 +375,7 @@ export default async function() {
         return c.json({code: 200, message: "Success", playlists: playlists});
     });
 
-    router.get("/getStats", userAuth, async (c) => {
+    router.get("/getStats", ServiceMiddleware("getAndSetStatValue"), userAuth, async (c) => {
         const userId = await c.req.header("user") ?? "";
 
         const username = await accountUtil.getUsernameFromUserID(userId);
@@ -401,7 +402,7 @@ export default async function() {
         return c.json({code: 200, message: "Success", stats: retObj});
     });
 
-    router.get("/getStat", userAuth, async (c) => {
+    router.get("/getStat", ServiceMiddleware("getAndSetStatValue"), userAuth, async (c) => {
         const stat = await c.req.header("stat") ?? "";
         const userId = await c.req.header("user") ?? "";
 
@@ -427,7 +428,7 @@ export default async function() {
         return c.json({code: 200, message: "Success", value: value}, 200);
     });
 
-    router.post("/setStat", userAuth, async (c) => {
+    router.post("/setStat", ServiceMiddleware("getAndSetStatValue"), userAuth, async (c) => {
         const postData = await c.req.json();
 
         const statPath = postData["stat"];

@@ -7,6 +7,8 @@ import * as accountUtil from "../accountUtil.ts";
 import * as path from "https://deno.land/std@0.208.0/path/mod.ts";
 import {existsSync} from "https://deno.land/std@0.206.0/fs/mod.ts";
 import { Md5, Message } from "https://deno.land/std@0.119.0/hash/md5.ts";
+import { ServiceMiddleware } from "../middleware.ts";
+
 
 
 async function getJson(filePath: string) {
@@ -20,7 +22,7 @@ export default async function() {
         return c.text("Not limited!");
     });
 
-    router.get("/cloudstorage/:ini", async (c) => {
+    router.get("/cloudstorage/:ini", ServiceMiddleware("cloudstorage"), async (c) => {
         const {ini} = c.req.param();
 
         if (existsSync(path.join(".", "cloudstorage", ini + ".ini")))
@@ -41,7 +43,7 @@ export default async function() {
         }
     });
 
-    router.get("/pak/:pakid", userAuth, async (c) => {
+    router.get("/pak/:pakid", ServiceMiddleware("pakfile"), userAuth, async (c) => {
         const {pakid} = c.req.param();
         const user = c.req.header("user") ?? "";
 
@@ -121,7 +123,7 @@ export default async function() {
         return c.body(data2.readable, 200);
     });
 
-    router.get("/content/:contentId", async (c) => {
+    router.get("/content/:contentId", ServiceMiddleware("contentPaths"), async (c) => {
         const { contentId } = c.req.param();
 
         if (!contentId)
@@ -160,7 +162,7 @@ export default async function() {
         return c.json({code: 200, message: "Success", flags: retFlags}, 200);
     });
 
-    router.get("/flags/:flagId", async (c) => {
+    router.get("/flags/:flagId", ServiceMiddleware("getEventFlag"), async (c) => {
         const { flagId } = c.req.param();
 
         if (!flagId)
@@ -179,7 +181,7 @@ export default async function() {
         return c.json({code: 200, message: "Success", value: flagSnap.data()["value"]}, 200);
     });
 
-    router.get("/news/getRecentPost", async (c) => {
+    router.get("/news/getRecentPost", ServiceMiddleware("getNewsPost"), async (c) => {
         const q = query(collection(db, "news"));
 
         let retObject:QueryDocumentSnapshot = new QueryDocumentSnapshot();
@@ -208,7 +210,7 @@ export default async function() {
         return c.json({code: 200, message: "Success", id: idChosen, post: {content: retObject.data()["content"], title: retObject.data()["title"], photo: retObject.data()["photo"], author: retObject.data()["author"]}});
     });
 
-    router.get("/news/:postId", async (c) => {
+    router.get("/news/:postId", ServiceMiddleware("getNewsPost"), async (c) => {
         const { postId } = c.req.param();
 
         const newsRef = doc(db, "news", postId);
@@ -224,7 +226,7 @@ export default async function() {
 
     
 
-    router.get("/user/:userId", async (c) => {
+    router.get("/user/:userId", ServiceMiddleware("getUser"), async (c) => {
         const { userId } = c.req.param();
         
         let username = await accountUtil.getUsernameFromUserID(userId);
@@ -246,7 +248,7 @@ export default async function() {
         return c.json({code: 200, message: "Success", username: username, id: data["id"], banned: data["banned"], isAdmin: data["isAdmin"], betaTester: data["betaTester"], profilePhoto: data["profilePhoto"], MtxCurrency: data["MtxCurrency"] ?? 0}, 200);
     });
 
-    router.get("/getUsers", ratelimitAuth, async (c) => {
+    router.get("/getUsers", ServiceMiddleware("getUser"), ratelimitAuth, async (c) => {
         const count = c.req.query("c");
         const startAt = c.req.query("s");
         let users:any[] = [];

@@ -4,11 +4,12 @@ import * as accountUtil from "../accountUtil.ts"
 import { deleteDoc, doc, getDoc, setDoc, updateDoc } from "https://www.gstatic.com/firebasejs/9.8.1/firebase-firestore.js";
 import { db } from "../database.ts";
 import { logger } from "../util.ts";
+import { ServiceMiddleware } from "../middleware.ts";
 
 export default async function() {
     const router = new Hono();
 
-    router.get("/getFriends", async (c) => {
+    router.get("/getFriends", ServiceMiddleware("getFriend"), async (c) => {
         const userId = c.req.query("user");
         const returnID = c.req.query("x");
 
@@ -35,7 +36,7 @@ export default async function() {
         
     });
 
-    router.get("/isFriend", async (c) => {
+    router.get("/isFriend", ServiceMiddleware("getFriend"), async (c) => {
         const user = c.req.query("user");
         const otherUser = c.req.query("otherUser");
 
@@ -81,7 +82,7 @@ export default async function() {
 
     });
 
-    router.post("/removeFriend", userAuth, async (c) => {
+    router.post("/removeFriend", ServiceMiddleware("addRemoveFriend"), userAuth, async (c) => {
         const postData = await c.req.json();
 
         const user = postData["user"];
@@ -160,7 +161,7 @@ export default async function() {
 
     });
 
-    router.post("/denyRequest", userAuth, async (c) => {
+    router.post("/denyRequest", ServiceMiddleware("acceptDenyFriendRequest"), userAuth, async (c) => {
         const postData = await c.req.json();
 
         const denyingUser = postData["user"];
@@ -241,7 +242,7 @@ export default async function() {
 
     });
 
-    router.post("/acceptRequest", userAuth, async (c) => {
+    router.post("/acceptRequest", ServiceMiddleware("acceptDenyFriendRequest"), userAuth, async (c) => {
         const postData = await c.req.json();
 
         const acceptingUser = postData["user"];
@@ -332,7 +333,7 @@ export default async function() {
 
     });
 
-    router.post("/sendRequest", userAuth, async (c) => {
+    router.post("/sendRequest", ServiceMiddleware("addRemoveFriend"), userAuth, async (c) => {
         const postData = await c.req.json();
 
         const userId = postData["user"];
