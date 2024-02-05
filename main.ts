@@ -1,6 +1,6 @@
 import "https://deno.land/std@0.204.0/dotenv/load.ts";
 import { Hono } from "https://deno.land/x/hono@v3.8.1/mod.ts" 
-import { logger } from "./util.ts"
+import { logger, setBackendHostType, backendHostType, BackendHostType } from "./util.ts"
 import { auth, db } from "./database.ts"
 import { tokens } from "./token.ts";
 import { collection, doc, getDoc } from "https://www.gstatic.com/firebasejs/9.8.1/firebase-firestore.js";
@@ -13,6 +13,7 @@ import { readerFromStreamReader } from "https://deno.land/std@0.205.0/streams/mo
 import {existsSync} from "https://deno.land/std@0.206.0/fs/mod.ts";
 import { exists } from "https://deno.land/std@0.206.0/fs/exists.ts";
 import * as path from "https://deno.land/std@0.208.0/path/mod.ts";
+import { HostTypeMiddleware } from "./middleware.ts";
 
 
 
@@ -68,12 +69,34 @@ app.use("*", async (c, next) => {
   }
 });
 
+if (Deno.args.includes("-dev"))
+{
+   setBackendHostType(BackendHostType.Developer);
+}
+else if (Deno.args.includes("-staging"))
+{
+  setBackendHostType(BackendHostType.Staging);
+}
+else if (Deno.args.includes("-prod"))
+{
+  setBackendHostType(BackendHostType.Prod);
+}
+
+if (backendHostType == BackendHostType.None)
+{
+  logger.error("Backend Host Type is NONE, make sure to check your parameters. exiting...");
+  Deno.exit(1);
+}
+
 app.use(
   '/api/*',
   cors({
     origin: "*",
   })
 );
+
+app.use(HostTypeMiddleware(backendHostType));
+
 
 app.notFound((c) => {
   return c.json({code: 404, message: "Not Found"});
@@ -88,14 +111,15 @@ app.route("api/v1/game", await (await import("./routes/game.ts")).default());
 
 const abortController = new AbortController();
 
-InitializeWebsocketServer();
 
 app.get("/admin", async (c) => {
   c.header("content-type", "text/html");
   return c.body(await Deno.readFile("admin/index.html"));
 });
 
-const envName = Deno.args.includes("-dev") ? "DEV_PORT" : "PORT";
+
+
+const envName = backendHostType == BackendHostType.Prod ? "PORT" : backendHostType == BackendHostType.Developer ? "DEV_PORT" : "STAGING_PORT";
 serve(app.fetch, {
   signal: abortController.signal,
   port: parseInt(Deno.env.get(envName) ?? "8000"),
@@ -104,4 +128,7 @@ serve(app.fetch, {
 app.get('/', async (c) => {
   return c.json({code: 200, message: "Success"});
 });
+
+InitializeWebsocketServer();
+
 
