@@ -11,6 +11,12 @@ import * as account from "./account.ts";
 import * as token from "../token.ts";
 import { SmtpClient } from "https://deno.land/x/smtp/mod.ts";
 import { ServiceMiddleware } from "../middleware.ts";
+import * as path from "https://deno.land/std@0.208.0/path/mod.ts";
+
+
+async function getJson(filePath: string) {
+    return JSON.parse(await Deno.readTextFile(filePath));
+}
 
 
 export let bIsMaintenanceMode = false;
@@ -97,6 +103,41 @@ export default async function() {
         await client.close();
 
         return c.json({code: 200, message: "Success"});
+    });
+
+    router.post("/internal/setService", ServiceMiddleware("updateService"), adminAuth, async (c) => {
+        let json = await getJson(path.join(".", "data", "services.json"));
+
+        const postData = await c.req.json();
+        const id = postData.service;
+        const enabled = postData.enabled;
+
+        if (!json["services"][id])
+        {
+            return c.json({code: 404, message: `Service ${id} not found.`}, 404);
+        }
+        
+        const obj = json["services"][id];
+        json["services"][id].enabled = enabled;
+        const jsonstr = JSON.stringify(json, null, 2);
+        const file = await Deno.create(path.join(".", "data", "services.json"));
+        const writer = file.writable.getWriter();
+        await writer.write(new TextEncoder().encode(jsonstr));
+        return c.json({code: 200, message: "Success"});
+    });
+
+    router.get("/internal/getServices", adminAuth, async (c) => {
+        const json = await getJson(path.join(".", "data", "services.json"));
+
+        const retVal:object[] = [];
+        for (let i = 0; i < Object.keys(json["services"]).length; i++)
+        {
+            const jsonObjName = Object.keys(json["services"])[i];
+            const jsonObj = json["services"][jsonObjName];
+            retVal.push({id: jsonObjName, name: jsonObj["displayName"], enabled: jsonObj["enabled"]});
+        }
+
+        return c.json({code: 200, message: "Success", services: retVal});
     });
 
     router.post("/internal/getMemoryUsage", ServiceMiddleware("getMemoryUsage"), adminAuth, async (c) => {
