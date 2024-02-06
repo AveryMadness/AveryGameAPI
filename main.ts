@@ -89,7 +89,7 @@ if (backendHostType == BackendHostType.None)
 }
 
 app.use(
-  '/api/*',
+  "/api/*",
   cors({
     origin: "*",
   })
