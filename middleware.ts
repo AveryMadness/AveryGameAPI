@@ -3,7 +3,7 @@ import { db } from "./database.ts";
 import { doc, getDoc } from "https://www.gstatic.com/firebasejs/9.8.1/firebase-firestore.js";
 import { checkHashedPassword } from "./hashutil.ts";
 import * as token from "./token.ts";
-import { logger } from "./util.ts";
+import { logger, backendHostType, BackendHostType } from "./util.ts";
 import * as accountUtil from "./accountUtil.ts"
 import auth from "./routes/auth.ts";
 import * as path from "https://deno.land/std@0.208.0/path/mod.ts";
@@ -14,6 +14,37 @@ async function getJson(filePath: string) {
 }
 
 const rateLimits:string[] = [];
+
+export const HostTypeMiddleware = (hostType:BackendHostType = backendHostType):MiddlewareHandler => {
+    return async (c, next) => {
+
+        if (hostType == BackendHostType.Prod)
+            return await next();
+
+        if (hostType == BackendHostType.None)
+        {
+            logger.error("Tried to access host type, but host type is NONE! Exiting...");
+            Deno.exit(1);
+        }
+        const authName = hostType == BackendHostType.Developer ? "DEVELOPER_AUTH_KEY" : "STAGING_AUTH_KEY";
+
+        const authHeader = c.req.header("hostAuthentication");
+
+        if (!authHeader)
+        {
+            return c.json({code: 400, message: "Invalid authentication header."}, 400);
+        }
+
+        const correctAuth = Deno.env.get(authName);
+
+        if (authHeader != correctAuth)
+        {
+            return c.json({code: 403, message: "Invalid authentication key."}, 403);
+        }
+
+        await next();
+    };
+};
 
 export const ServiceMiddleware = (service:string):MiddlewareHandler => {
     return async (c, next) => {

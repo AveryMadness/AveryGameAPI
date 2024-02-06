@@ -1,5 +1,5 @@
 import { WebSocketClient, WebSocketServer } from "https://deno.land/x/websocket@v0.1.4/mod.ts";
-import { logger } from "../util.ts";
+import { logger, backendHostType, BackendHostType } from "../util.ts";
 import { getUsernameFromUserID } from "../accountUtil.ts";
 
 export let wss:WebSocketServer;
@@ -64,7 +64,8 @@ function onNumOnlineUsersChanged()
 
 export function InitializeWebsocketServer()
 {
-    const envName = Deno.args.includes("-dev") ? "DEV_WebSocketPort" : "WebSocketPort";
+    const envName = backendHostType == BackendHostType.Prod ? "WebSocketPort" : backendHostType == BackendHostType.Developer ? "DEV_WebSocketPort" : "STAGING_WebSocketPort";
+
     const wsport:number = parseInt(Deno.env.get(envName) ?? "3000") ?? 3000;
     wss = new WebSocketServer(wsport);
 
