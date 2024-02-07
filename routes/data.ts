@@ -22,6 +22,33 @@ export default async function() {
         return c.text("Not limited!");
     });
 
+    router.get("/manifest/:key", async (c) => {
+        const {key} = c.req.param();
+
+        if (key == "averygame")
+        {
+            const playlists = await getJson(path.join(".", "data", "playlist.json"));
+            const version = await getJson(path.join(".", "data", "version.json"));
+            const services = await getJson(path.join(".", "data", "services.json"));
+
+            return c.json({code: 200, message: "Success", manifest: {
+                _title: "Avery Game",
+                _activeDate: new Date(Date.now()).toISOString(),
+                _lastModified: new Date(Date.now()).toISOString(),
+                _locale: "en-US",
+                playlists: playlists,
+                versions: {
+                    versions: version.playableVersions,
+                    types: version.versionType;
+                }
+            }})
+        }
+        else
+        {
+            return c.json({code: 404, message: "Key " + key + " not found."}, 404);
+        }
+    });
+
     router.get("/cloudstorage/:ini", ServiceMiddleware("cloudstorage"), async (c) => {
         const {ini} = c.req.param();
 
