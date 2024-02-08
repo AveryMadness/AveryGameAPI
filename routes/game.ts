@@ -19,6 +19,10 @@ export default async function() {
     const currentGameVersion = Deno.env.get("GAME_VERSION") ?? "0.25.0";
 
     router.get("/heartbeat", async (c) => {
+        if (bIsMaintenanceMode)
+        {
+            return c.json({code: 429, message: "bIsMaintenanceMode true"}, 429);
+        }
         return c.json({code: 200, message: "You should never see this."});
     });
 
@@ -310,23 +314,30 @@ export default async function() {
             return c.json({code: 403, message: "Sorry, all servers are currently offline for maintenance. Check back later!"}, 403);
         }
 
-        var json = await getJson(path.join(".", "data", "version.json"));
-        var versions = json.playableVersions;
+
+        const json = await getJson(path.join(".", "data", "version.json"));
+        const versions = json.playableVersions;
 
         if (!gameVersion)
         {
             return c.json({code: 400, message: "Invalid user parameters."}, 400);
         }
-        
+
+        let validVersions = "";
+        for (let i = 0; i < versions.length; i++)
+        {
+            validVersions += `${versions[i]} (${json["versionType"][i]})${i == (versions.length - 1) ? "" : ","}`
+        }
+    
         return c.json({code: 200, message: "Success", correctVersion: versions.includes(gameVersion), type: versions.includes(gameVersion) ? versions[gameVersion] : null});
     });
 
     router.get("/getGameVersions", ServiceMiddleware("getGameVersions"), async (c) => {
         const versions:object[] = [];
 
-        var json = await getJson(path.join(".", "data", "version.json"));
-        var versionStrings = json.playableVersions;
-        var versionTypes = json.versionType;
+        const json = await getJson(path.join(".", "data", "version.json"));
+        const versionStrings = json.playableVersions;
+        const versionTypes = json.versionType;
         
         for (let i = 0; i < versionStrings.length; i++)
         {

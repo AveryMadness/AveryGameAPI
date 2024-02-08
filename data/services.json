@@ -1,128 +1,128 @@
 {
-    "services": {
-        "updateService": {
-            "enabled": true,
-            "displayName": "Update Service"
-        },
-        "login": {
-            "enabled": true,
-            "displayName": "Log In"
-        },
-        "getBetaPermission": {
-            "enabled": true,
-            "displayName": "Get Beta Permission"
-        },
-        "createUser": {
-            "enabled": true,
-            "displayName": "Create User"
-        },
-        "getPendingUsers": {
-            "enabled": true,
-            "displayName": "Get Pending Users"
-        },
-        "acceptDenyPendingUser": {
-            "enabled": true,
-            "displayName": "Accept and Deny Pending User"
-        },
-        "getMemoryUsage": {
-            "enabled": true,
-            "displayName": "Get Memory Usage"
-        },
-        "updateSourceFiles": {
-            "enabled": true,
-            "displayName": "Update Source Files"
-        },
-        "createOffer": {
-            "enabled": true,
-            "displayName": "Create Offer"
-        },
-        "setOrDeleteEventFlag": {
-            "enabled": true,
-            "displayName": "Set or Delete Event Flag"
-        },
-        "createOrDeleteNewsPost": {
-            "enabled": true,
-            "displayName": "Create or Delete News Post"
-        },
-        "deleteUser": {
-            "enabled": true,
-            "displayName": "Delete User"
-        },
-        "setAdmin": {
-            "enabled": true,
-            "displayName": "Set Admin"
-        },
-        "banUser": {
-            "enabled": true,
-            "displayName": "Ban or Unban User"
-        },
-        "cloudstorage": {
-            "enabled": true,
-            "displayName": "Cloudstorage"
-        },
-        "pakfile": {
-            "enabled": true,
-            "displayName": "Pak Files"
-        },
-        "contentPaths": {
-            "enabled": true,
-            "displayName": "Content Directories"
-        },
-        "getEventFlag": {
-            "enabled": true,
-            "displayName": "Get Event Flag"
-        },
-        "getNewsPost": {
-            "enabled": true,
-            "displayName": "Get News Post"
-        },
-        "getUser": {
-            "enabled": true,
-            "displayName": "Get User"
-        },
-        "getFriend": {
-            "enabled": true,
-            "displayName": "Get Friend"
-        },
-        "addRemoveFriend": {
-            "enabled": true,
-            "displayName": "Add and Remove Friend"
-        },
-        "acceptDenyFriendRequest": {
-            "enabled": true,
-            "displayName": "Accept and Deny Friend request"
-        },
-        "getItem": {
-            "enabled": true,
-            "displayName": "Get Item"
-        },
-        "updateItem": {
-            "enabled": true,
-            "displayName": "Update Item"
-        },
-        "claimOffer": {
-            "enabled": true,
-            "displayName": "Claim Offer"
-        },
-        "getOffer": {
-            "enabled": true,
-            "displayName": "Get Offer"
-        }, 
-        "checkGameVersion": {
-            "enabled": true,
-            "displayName": "Check Game Version"
-        },
-        "getGameVersions": {
-            "enabled": true,
-            "displayName": "Get Game Versions"
-        },
-        "getPlaylist": {
-            "enabled": true,
-            "displayName": "Get Playlist"
-        },
-        "getAndSetStatValue": {
-            "enabled": true,
-            "displayName": "Get and Set Stat Value"
-        }
+  "services": {
+    "updateService": {
+      "enabled": true,
+      "displayName": "Update Service"
+    },
+    "login": {
+      "enabled": true,
+      "displayName": "Log In"
+    },
+    "getBetaPermission": {
+      "enabled": true,
+      "displayName": "Get Beta Permission"
+    },
+    "createUser": {
+      "enabled": true,
+      "displayName": "Create User"
+    },
+    "getPendingUsers": {
+      "enabled": true,
+      "displayName": "Get Pending Users"
+    },
+    "acceptDenyPendingUser": {
+      "enabled": true,
+      "displayName": "Accept and Deny Pending User"
+    },
+    "getMemoryUsage": {
+      "enabled": true,
+      "displayName": "Get Memory Usage"
+    },
+    "updateSourceFiles": {
+      "enabled": true,
+      "displayName": "Update Source Files"
+    },
+    "createOffer": {
+      "enabled": true,
+      "displayName": "Create Offer"
+    },
+    "setOrDeleteEventFlag": {
+      "enabled": true,
+      "displayName": "Set or Delete Event Flag"
+    },
+    "createOrDeleteNewsPost": {
+      "enabled": true,
+      "displayName": "Create or Delete News Post"
+    },
+    "deleteUser": {
+      "enabled": true,
+      "displayName": "Delete User"
+    },
+    "setAdmin": {
+      "enabled": true,
+      "displayName": "Set Admin"
+    },
+    "banUser": {
+      "enabled": true,
+      "displayName": "Ban or Unban User"
+    },
+    "cloudstorage": {
+      "enabled": true,
+      "displayName": "Cloudstorage"
+    },
+    "pakfile": {
+      "enabled": true,
+      "displayName": "Pak Files"
+    },
+    "contentPaths": {
+      "enabled": true,
+      "displayName": "Content Directories"
+    },
+    "getEventFlag": {
+      "enabled": true,
+      "displayName": "Get Event Flag"
+    },
+    "getNewsPost": {
+      "enabled": true,
+      "displayName": "Get News Post"
+    },
+    "getUser": {
+      "enabled": true,
+      "displayName": "Get User"
+    },
+    "getFriend": {
+      "enabled": true,
+      "displayName": "Get Friend"
+    },
+    "addRemoveFriend": {
+      "enabled": true,
+      "displayName": "Add and Remove Friend"
+    },
+    "acceptDenyFriendRequest": {
+      "enabled": true,
+      "displayName": "Accept and Deny Friend request"
+    },
+    "getItem": {
+      "enabled": true,
+      "displayName": "Get Item"
+    },
+    "updateItem": {
+      "enabled": true,
+      "displayName": "Update Item"
+    },
+    "claimOffer": {
+      "enabled": true,
+      "displayName": "Claim Offer"
+    },
+    "getOffer": {
+      "enabled": true,
+      "displayName": "Get Offer"
+    },
+    "checkGameVersion": {
+      "enabled": true,
+      "displayName": "Check Game Version"
+    },
+    "getGameVersions": {
+      "enabled": true,
+      "displayName": "Get Game Versions"
+    },
+    "getPlaylist": {
+      "enabled": true,
+      "displayName": "Get Playlist"
+    },
+    "getAndSetStatValue": {
+      "enabled": true,
+      "displayName": "Get and Set Stat Value"
     }
+  }
 }
