@@ -1,3 +1,4 @@
+// deno-lint-ignore require-await
 import { Hono } from "https://deno.land/x/hono@v3.8.1/mod.ts";
 import { userAuth } from "../middleware.ts";
 import * as accountUtil from "../accountUtil.ts"
@@ -13,7 +14,7 @@ export default async function() {
         const userId = c.req.query("user");
         const returnID = c.req.query("x");
 
-        let returnBool = true;
+        let _returnBool = true;
 
         if (!userId)
         {
@@ -22,7 +23,7 @@ export default async function() {
 
         if (returnID != undefined)
         {
-            returnBool = Boolean(returnID);
+            _returnBool = Boolean(returnID);
         }
 
         const { success, friends } = await accountUtil.getFriendsFromUserID(userId);

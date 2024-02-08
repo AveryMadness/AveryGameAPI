@@ -1,3 +1,5 @@
+// deno-lint-ignore require-await
+
 import {DocumentSnapshot, _Query, QueryDocumentSnapshot, collection, deleteDoc, doc, getDoc, getDocs, query, setDoc, updateDoc, where } from "https://www.gstatic.com/firebasejs/9.8.1/firebase-firestore.js";
 import { db } from "./database.ts";
 import { logger } from "./util.ts";
@@ -24,7 +26,7 @@ export async function HasValidJson(req:HonoRequest):Promise<boolean>
 {
     try
     {
-        const json = await req.json();
+        const _json = await req.json();
         return true;
     }
     catch
@@ -33,7 +35,7 @@ export async function HasValidJson(req:HonoRequest):Promise<boolean>
     }
 }
 
-export async function getAccountDataFromID(userId:string):Promise<Object | undefined>
+export async function getAccountDataFromID(userId:string):Promise<object | undefined>
 {
     const q = query(collection(db, "user"), where("id", "==", userId));
 
@@ -47,13 +49,13 @@ export async function getAccountDataFromID(userId:string):Promise<Object | undef
     return retVal;
 }
 
-export async function getAccountPropertyFromKey(userId:string, key:string):Promise<any | undefined>
+export async function getAccountPropertyFromKey(userId:string, key:string):Promise<object | undefined>
 {
     const data = await getAccountDataFromID(userId);
 
     if (data != undefined)
     {
-        return (data as any)[key];
+        return (data as object)[key];
     }
 
     return undefined;
@@ -102,10 +104,10 @@ export async function acceptPendingUser(username:string, email:string, password:
 
 export async function getRemoteAddr(c:HonoRequest)
 {
-    const raw:any = c.raw;
+    /*const raw:any = c.raw;
     const innerRequestSymbol = Object.getOwnPropertySymbols(raw).find(x => x.description === "request")!
     const innerRequest = raw[innerRequestSymbol];
-    return innerRequest.remoteAddr;
+    return innerRequest.remoteAddr;*/
 }
 
 export async function getUsernameFromUserID(userId:string)

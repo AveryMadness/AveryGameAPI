@@ -1,3 +1,5 @@
+// deno-lint-ignore require-await
+
 import { Hono } from "https://deno.land/x/hono@v3.8.1/mod.ts";
 import * as hashLibrary from "../hashutil.ts"
 //import { logger } from "../util.ts";
@@ -80,10 +82,6 @@ export default async function() {
         return c.json({code: 200, message: "Success", key: key, userId: userId}, 200);
     });
 
-    router.get("/game/getItem", async (c) => {
-
-    });
-
     router.get("/status/:userid", async (c) => {
         const { userid } = c.req.param();
 
@@ -131,7 +129,7 @@ export default async function() {
     router.post("/authenticateAuthKey", ServiceMiddleware("login"), async (c) => {
         const postData = await c.req.json();
         const userId = postData["user"];
-        const key = postData["key"];
+        const _key = postData["key"];
 
         const tok = await token.getTokenFromUserId(userId);
 
@@ -163,7 +161,7 @@ export default async function() {
         const userRef = doc(db, "user", username);
         const userSnap = await getDoc(userRef);
 
-        let MtxCurrency:Number = 0;
+        let MtxCurrency:number = 0;
 
         MtxCurrency = userSnap.data()["MtxCurrency"];
 
@@ -268,10 +266,6 @@ export default async function() {
 
             if (validPass)
             {
-                const useragent = c.req.header("User-Agent");
-                let shouldKeyExpire = true;
-                if (useragent?.includes("AveryGame/"))
-                    shouldKeyExpire = false;
                 c.status(200);
                 const key = await token.generateToken(docSnap.data()["id"]);
                 return c.json({code: 200, message: "Success", key: key, userId: docSnap.data()["id"]});

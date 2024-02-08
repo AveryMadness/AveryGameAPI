@@ -6,7 +6,7 @@ export let wss:WebSocketServer;
 
 const chatMessages:string[] = [];
 
-let numOnlineUsers = 0;
+const _numOnlineUsers = 0;
 
 function UpdateAllUserChats()
 {
@@ -50,7 +50,7 @@ async function replaceUserID(string:string):Promise<string>
     return string;
 }
 
-function onNumOnlineUsersChanged()
+function _onNumOnlineUsersChanged()
 {
     if (wss)
     {

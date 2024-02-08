@@ -68,7 +68,7 @@ export const RateLimitedMiddleware = ():MiddlewareHandler => {
 
         if (c.req.header("test") == "true")
         {
-            c.req.raw.headers.forEach((val:string, key:string, parent:Headers) => {
+            c.req.raw.headers.forEach((val:string, key:string, _parent:Headers) => {
                 logger.info(`${key}: ${val}`);
             });
             return c.text(address);

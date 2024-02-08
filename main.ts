@@ -1,3 +1,5 @@
+// deno-lint-ignore require-await
+
 import "https://deno.land/std@0.204.0/dotenv/load.ts";
 import { Hono } from "https://deno.land/x/hono@v3.8.1/mod.ts" 
 import { logger, setBackendHostType, backendHostType, BackendHostType } from "./util.ts"

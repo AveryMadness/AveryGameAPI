@@ -1,3 +1,5 @@
+// deno-lint-ignore require-await
+
 import "https://deno.land/std@0.204.0/dotenv/load.ts";
 import { DocumentSnapshot, collection, _deleteDoc, getDocs, _setDoc } from "https://www.gstatic.com/firebasejs/9.8.1/firebase-firestore.js";
 import * as _token from "./token.ts";
