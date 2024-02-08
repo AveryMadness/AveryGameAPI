@@ -1,25 +1,10 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/9.8.1/firebase-app.js";
 
-import {
-    addDoc,
-    collection,
-    connectFirestoreEmulator,
-    deleteDoc,
-    doc,
-    Firestore,
-    getDoc,
-    getDocs,
-    getFirestore,
-    initializeFirestore,
-    query,
-    QuerySnapshot,
-    setDoc,
-    where,
-  } from "https://www.gstatic.com/firebasejs/9.8.1/firebase-firestore.js";
+import { initializeFirestore } from "https://www.gstatic.com/firebasejs/9.8.1/firebase-firestore.js";
 
   
 import { getAuth } from "https://www.gstatic.com/firebasejs/9.8.1/firebase-auth.js";
-import { logger } from "./util.ts";
+//import { logger } from "./util.ts";
 
 export const app = initializeApp({
     apiKey: Deno.env.get("FIREBASE_API_KEY"),
