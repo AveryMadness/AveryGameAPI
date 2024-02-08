@@ -1,11 +1,11 @@
 import { Hono } from "https://deno.land/x/hono@v3.8.1/mod.ts";
 import { logger } from "../util.ts";
-import { userAuth, adminAuth } from "../middleware.ts";
+import { userAuth } from "../middleware.ts";
 import * as accountUtil from "../accountUtil.ts"
-import { DocumentReference, DocumentSnapshot, QueryDocumentSnapshot, collection, doc, getDoc, getDocs, getDocsFromServer, query, setDoc, updateDoc, where } from "https://www.gstatic.com/firebasejs/9.8.1/firebase-firestore.js";
+import { DocumentSnapshot, QueryDocumentSnapshot, collection, doc, getDoc, getDocs, query, setDoc, updateDoc, where } from "https://www.gstatic.com/firebasejs/9.8.1/firebase-firestore.js";
 import { db } from "../database.ts";
 import * as path from "https://deno.land/std@0.208.0/path/mod.ts";
-import { dirname } from "https://deno.land/std@0.206.0/path/dirname.ts";
+//import { dirname } from "https://deno.land/std@0.206.0/path/dirname.ts";
 import { bIsMaintenanceMode } from "./admin.ts";
 import { ServiceMiddleware } from "../middleware.ts";
 

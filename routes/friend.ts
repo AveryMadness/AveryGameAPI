@@ -3,7 +3,7 @@ import { userAuth } from "../middleware.ts";
 import * as accountUtil from "../accountUtil.ts"
 import { deleteDoc, doc, getDoc, setDoc, updateDoc } from "https://www.gstatic.com/firebasejs/9.8.1/firebase-firestore.js";
 import { db } from "../database.ts";
-import { logger } from "../util.ts";
+//import { logger } from "../util.ts";
 import { ServiceMiddleware } from "../middleware.ts";
 
 export default async function() {

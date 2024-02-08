@@ -2,10 +2,10 @@ import { Hono } from "https://deno.land/x/hono@v3.8.1/mod.ts";
 import * as token from "../token.ts"
 import * as accountUtil from "../accountUtil.ts"
 import { DocumentSnapshot, collection, doc, getDoc, getDocs } from "https://www.gstatic.com/firebasejs/9.8.1/firebase-firestore.js";
-import { auth, db } from "../database.ts";
-import { checkHashedPassword } from "../hashutil.ts";
+import { db } from "../database.ts";
+//import { checkHashedPassword } from "../hashutil.ts";
 import { userAuth } from "../middleware.ts";
-import { logger } from "../util.ts";
+//import { logger } from "../util.ts";
 
 export default async function() {
     const router = new Hono();

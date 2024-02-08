@@ -1,8 +1,8 @@
 import { accessToken } from "https://deno.land/x/access_token@1.0.0/mod.ts";
-import { logger } from "./util.ts";
+//import { logger } from "./util.ts";
 import { BufReader, readLines } from "https://deno.land/std@0.92.0/io/bufio.ts";
 import { TextProtoReader } from "https://deno.land/std@0.92.0/textproto/mod.ts";
-import { userAuth } from "./middleware.ts";
+//import { userAuth } from "./middleware.ts";
 import { getUsernameFromUserID } from "./accountUtil.ts";
 import { doc, getDoc, updateDoc } from "https://www.gstatic.com/firebasejs/9.8.1/firebase-firestore.js";
 import { db } from "./database.ts";

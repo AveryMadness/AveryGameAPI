@@ -5,7 +5,7 @@ import { checkHashedPassword } from "./hashutil.ts";
 import * as token from "./token.ts";
 import { logger, backendHostType, BackendHostType } from "./util.ts";
 import * as accountUtil from "./accountUtil.ts"
-import auth from "./routes/auth.ts";
+//import auth from "./routes/auth.ts";
 import * as path from "https://deno.land/std@0.208.0/path/mod.ts";
 
 

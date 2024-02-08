@@ -1,12 +1,12 @@
 import { Hono } from "https://deno.land/x/hono@v3.8.1/mod.ts";
-import { DocumentSnapshot, Query, QueryDocumentSnapshot, collection, doc, getDoc, getDocs, query } from "https://www.gstatic.com/firebasejs/9.8.1/firebase-firestore.js";
+import { DocumentSnapshot, QueryDocumentSnapshot, collection, doc, getDoc, getDocs, query } from "https://www.gstatic.com/firebasejs/9.8.1/firebase-firestore.js";
 import { db } from "../database.ts";
 import { logger } from "../util.ts";
 import { ratelimitAuth, userAuth } from "../middleware.ts";
 import * as accountUtil from "../accountUtil.ts";
 import * as path from "https://deno.land/std@0.208.0/path/mod.ts";
 import {existsSync} from "https://deno.land/std@0.206.0/fs/mod.ts";
-import { Md5, Message } from "https://deno.land/std@0.119.0/hash/md5.ts";
+import { Md5 } from "https://deno.land/std@0.119.0/hash/md5.ts";
 import { ServiceMiddleware } from "../middleware.ts";
 
 

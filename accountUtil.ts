@@ -1,9 +1,9 @@
-import { DocumentReference, DocumentSnapshot, Query, QueryDocumentSnapshot, collection, deleteDoc, doc, getDoc, getDocs, query, setDoc, updateDoc, where } from "https://www.gstatic.com/firebasejs/9.8.1/firebase-firestore.js";
+import {DocumentSnapshot, _Query, QueryDocumentSnapshot, collection, deleteDoc, doc, getDoc, getDocs, query, setDoc, updateDoc, where } from "https://www.gstatic.com/firebasejs/9.8.1/firebase-firestore.js";
 import { db } from "./database.ts";
 import { logger } from "./util.ts";
 import { HonoRequest } from "https://deno.land/x/hono@v3.8.1/mod.ts";
 import * as token from "./token.ts"
-import * as account from "./routes/account.ts"
+//import * as account from "./routes/account.ts"
 import { SmtpClient } from "https://deno.land/x/smtp@v0.7.0/smtp.ts";
 
 export enum UserRole

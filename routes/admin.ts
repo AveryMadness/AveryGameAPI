@@ -1,14 +1,14 @@
 import { Hono } from "https://deno.land/x/hono@v3.8.1/mod.ts";
 import * as accountUtil from "../accountUtil.ts";
-import { DocumentReference, DocumentSnapshot, _EmptyAppCheckTokenProvider, collection, deleteDoc, doc, getDoc, getDocs, setDoc, updateDoc } from "https://www.gstatic.com/firebasejs/9.8.1/firebase-firestore.js";
+import { DocumentSnapshot, _EmptyAppCheckTokenProvider, collection, deleteDoc, doc, getDoc, getDocs, setDoc, updateDoc } from "https://www.gstatic.com/firebasejs/9.8.1/firebase-firestore.js";
 import { db } from "../database.ts";
 import { adminAuth } from "../middleware.ts";
 import { logger } from "../util.ts";
-import { to } from "https://deno.land/x/optic@1.3.11/logger/profileMeasure.ts";
-import { toPathString } from "https://deno.land/std@0.206.0/fs/_util.ts";
+//import { to } from "https://deno.land/x/optic@1.3.11/logger/profileMeasure.ts";
+//import { toPathString } from "https://deno.land/std@0.206.0/fs/_util.ts";
 import { UserRole, UserStatus } from "../accountUtil.ts";
-import * as account from "./account.ts";
-import * as token from "../token.ts";
+//import * as account from "./account.ts";
+//import * as token from "../token.ts";
 import { SmtpClient } from "https://deno.land/x/smtp/mod.ts";
 import { ServiceMiddleware } from "../middleware.ts";
 
