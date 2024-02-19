@@ -1,4 +1,7 @@
 import { ConsoleStream, Logger } from "https://deno.land/x/optic/mod.ts"
+import {getJson} from "./routes/data.ts";
+import * as path from "https://deno.land/std@0.208.0/path/mod.ts";
+
 
 export enum BackendHostType
 {

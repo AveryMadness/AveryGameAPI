@@ -1,9 +1,8 @@
 import "https://deno.land/std@0.204.0/dotenv/load.ts";
 import { Hono } from "https://deno.land/x/hono@v3.8.1/mod.ts" 
 import { logger, setBackendHostType, backendHostType, BackendHostType } from "./util.ts"
-import { auth, db } from "./database.ts"
+import { db } from "./db.ts"
 import { tokens } from "./token.ts";
-import { collection, doc, getDoc } from "https://www.gstatic.com/firebasejs/9.8.1/firebase-firestore.js";
 import { cors } from "https://deno.land/x/hono@v3.8.3/middleware.ts"
 import { serve } from "https://deno.land/std@0.204.0/http/server.ts";
 import { InitializeWebsocketServer } from "./wss/main.ts"
@@ -14,6 +13,8 @@ import {existsSync} from "https://deno.land/std@0.206.0/fs/mod.ts";
 import { exists } from "https://deno.land/std@0.206.0/fs/exists.ts";
 import * as path from "https://deno.land/std@0.208.0/path/mod.ts";
 import { HostTypeMiddleware } from "./middleware.ts";
+import "./mod.ts";
+import * as accountUtil from "./accountUtil.ts"
 
 
 
@@ -56,7 +57,7 @@ app.onError((err, c) => {
 app.use("*", async (c, next) => {
   await next();
 
-  if (Deno.args.includes("-dev"))
+  if (Deno.args.includes("-dev") && !c.req.url.includes("heartbeat"))
   {
     if (c.res.status == 200)
     {
@@ -82,6 +83,13 @@ else if (Deno.args.includes("-prod"))
   setBackendHostType(BackendHostType.Prod);
 }
 
+const names: string[] = [];
+for(const n in BackendHostType) {
+    if(typeof BackendHostType[n] === 'number') names.push(n);
+}
+
+logger.info("Starting backend with host type " + BackendHostType[backendHostType].toLowerCase());
+
 if (backendHostType == BackendHostType.None)
 {
   logger.error("Backend Host Type is NONE, make sure to check your parameters. exiting...");
@@ -103,7 +111,6 @@ app.notFound((c) => {
 });
   
 app.route("/api/v1/account", await (await import("./routes/account.ts")).default());
-app.route("/api/v1/authentication", await (await import("./routes/auth.ts")).default());
 app.route("api/v1/friend", await (await import("./routes/friend.ts")).default());
 app.route("api/v1/admin", await (await import("./routes/admin.ts")).default());
 app.route("api/v1/data", await (await import("./routes/data.ts")).default());

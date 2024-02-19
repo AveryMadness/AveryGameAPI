@@ -87,10 +87,10 @@ export function InitializeWebsocketServer()
             //onNumOnlineUsersChanged();
         });
 
-        ws.on("close", function() {
+        ws.on("close", async function() {
             //logger.info("client closed");
-            //numOnlineUsers--;
-            //onNumOnlineUsersChanged();
+           // numOnlineUsers--;
+           // onNumOnlineUsersChanged();
         });
 
         ws.on("message", async function (message: string) {
@@ -102,6 +102,12 @@ export function InitializeWebsocketServer()
             catch (exception)
             {
                 logger.error(exception);
+            }
+
+            if (!json)
+            {
+                ws.send(JSON.stringify({code: 400, message: "Invalid json."}));
+                return;
             }
 
             const payloadType = json.payloadType;
@@ -121,6 +127,10 @@ export function InitializeWebsocketServer()
             
             switch (payloadType)
             {
+                case "heartbeatv2": {
+                    ws.send(JSON.stringify({payloadType: "heartbeatv2", code: 200, message: "Success"}));
+                    break;
+                }
                 case "getChatMessages":
                     ws.send(JSON.stringify({payloadType: "getChatMessages", code: 200, message: "Success", payload: chatMessages}));
                     break;

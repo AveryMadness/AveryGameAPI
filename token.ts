@@ -4,8 +4,7 @@ import { BufReader, readLines } from "https://deno.land/std@0.92.0/io/bufio.ts";
 import { TextProtoReader } from "https://deno.land/std@0.92.0/textproto/mod.ts";
 import { userAuth } from "./middleware.ts";
 import { getUsernameFromUserID } from "./accountUtil.ts";
-import { doc, getDoc, updateDoc } from "https://www.gstatic.com/firebasejs/9.8.1/firebase-firestore.js";
-import { db } from "./database.ts";
+import { db } from "./db.ts";
 
 export const tokens:Map<string, string> = new Map();
 
@@ -15,21 +14,34 @@ export async function generateToken(userId:string, force:boolean = false)
 
     if (username == "")
     {
+        logger.info("username is nothing, returning new token")
         const tok = accessToken.generate("ags", userId);
         return tok;
     }
 
-    const userRef = doc(db, "user", username);
-    const userSnap = await getDoc(userRef);
+    const user = await db.
+    selectFrom('users')
+    .selectAll('users')
+    .where('user_name', '=', username ?? "")
+    .executeTakeFirst()
 
-    const token = userSnap.data()["key"];
+    if (!user)
+    {
+        return;
+    }
+
+    const token = user.user_token;
 
     if (!token || force)
     {
         const newToken = accessToken.generate("ags", userId);
-        updateDoc(userRef, {
-            token: newToken
-        });
+        await db
+        .updateTable('users')
+        .set({
+            user_token: newToken
+        })
+        .where('user_name', '=', 'username')
+        .executeTakeFirst()
 
         return newToken;
     }
@@ -70,8 +82,16 @@ export async function getTokenFromUserId(userId:string):Promise<string>
 {
     
     const username = await getUsernameFromUserID(userId);
-    const userRef = doc(db, "user", username);
-    const userSnap = getDoc(userRef);
+    const user = await db.
+    selectFrom('users')
+    .selectAll('users')
+    .where('user_name', '=', username ?? "")
+    .executeTakeFirst()
     
-    return (await userSnap).data()["key"];
+    if (!user)
+    {
+        return "";
+    }
+
+    return user.user_token;
 }

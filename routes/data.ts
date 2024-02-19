@@ -1,6 +1,5 @@
 import { Hono } from "https://deno.land/x/hono@v3.8.1/mod.ts";
-import { DocumentSnapshot, Query, QueryDocumentSnapshot, collection, doc, getDoc, getDocs, query } from "https://www.gstatic.com/firebasejs/9.8.1/firebase-firestore.js";
-import { db } from "../database.ts";
+import { db } from "../db.ts";
 import { logger } from "../util.ts";
 import { ratelimitAuth, userAuth } from "../middleware.ts";
 import * as accountUtil from "../accountUtil.ts";
@@ -8,18 +7,91 @@ import * as path from "https://deno.land/std@0.208.0/path/mod.ts";
 import {existsSync} from "https://deno.land/std@0.206.0/fs/mod.ts";
 import { Md5, Message } from "https://deno.land/std@0.119.0/hash/md5.ts";
 import { ServiceMiddleware } from "../middleware.ts";
+import * as fs from "https://deno.land/std@0.122.0/node/fs.ts";
+import { UserStatus } from "./account.ts";
 
 
 
-async function getJson(filePath: string) {
+export async function getJson(filePath: string) {
     return JSON.parse(await Deno.readTextFile(filePath));
 }
 
 export default async function() {
     const router = new Hono();
 
-    router.get("/test", ratelimitAuth, async (c) => {
-        return c.text("Not limited!");
+    router.get("/manifest/:key", async (c) => {
+        let {key} = c.req.param();
+        if (!key) key = "avery-game";
+
+        const locale = (c.req.header("Accept-Language") ?? "").split(",")[0];
+        const playlists = await getJson(path.join(".", "data", "featured.json"));
+        const services = await getJson(path.join(".", "data", "services.json"));
+        const versions = await getJson(path.join(".", "data", "version.json"));
+
+        let latestModifiedDate = new Date();
+        const playlistStat = fs.statSync(path.join(".", "data", "featured.json"));
+        const playlistDate = new Date(playlistStat.mtimeMs ?? 0);
+        if (playlistDate > latestModifiedDate)
+            latestModifiedDate = playlistDate;
+
+        const servicesStat = fs.statSync(path.join(".", "data", "services.json"));
+        const servicesDate = new Date(servicesStat.mtimeMs ?? 0);
+        if (servicesDate > latestModifiedDate)
+            latestModifiedDate = servicesDate;
+
+        const versionsStat = fs.statSync(path.join(".", "data", "version.json"));
+        const versionsDate = new Date(versionsStat.mtimeMs ?? 0);
+        if (versionsDate > latestModifiedDate)
+            latestModifiedDate = versionsDate;
+
+
+        if (key == "avery-game")
+        {
+            const manifest = {
+                _title: "Avery Game",
+                _activeDate: new Date(fs.statSync(path.join(".", "main.ts")).birthtimeMs ?? 0).toISOString(),
+                lastModified: latestModifiedDate.toISOString(),
+                _locale: locale,
+                _templateName: key,
+                playlist: {
+                    playlists: playlists.featured.playlists,
+                    _title: "Playlists",
+                    _activeDate: new Date(playlistStat.birthtime ?? 0).toISOString(),
+                    lastModified: playlistDate.toISOString(),
+                    _locale: locale,
+                    _templateName: "Playlists"
+                },
+                content: {
+                    content: playlists.featured.contentPacks,
+                    _title: "Content",
+                    _activeDate: new Date(playlistStat.birthtime ?? 0).toISOString(),
+                    lastModified: playlistDate.toISOString(),
+                    _locale: locale,
+                    _templateName: "Content"
+                },
+                services: {
+                    services: services,
+                    _title: "Services",
+                    _activeDate: new Date(servicesStat.birthtime ?? 0).toISOString(),
+                    lastModified: servicesDate.toISOString(),
+                    _locale: locale,
+                    _templateName: "Services"
+                },
+                versions: {
+                    versions: versions,
+                    _title: "Versions",
+                    _activeDate: new Date(versionsStat.ctimeMs ?? 0).toISOString(),
+                    lastModified: versionsDate.toISOString(),
+                    _locale: locale,
+                    _templateName: "Versions"
+                }
+              };
+
+              return c.json({code: 200, message: "Success", manifest: manifest});
+        }
+        
+        return c.json({code: 404, message: `Key ${key} not found.`}, 404);
+        
     });
 
     router.get("/cloudstorage/:ini", ServiceMiddleware("cloudstorage"), async (c) => {
@@ -48,8 +120,17 @@ export default async function() {
         const user = c.req.header("user") ?? "";
 
         const username = await accountUtil.getUsernameFromUserID(user);
-        const userDoc = doc(db, "user", username);
-        const userSnap = await getDoc(userDoc);
+       
+        const userObj = await db
+        .selectFrom('users')
+        .selectAll('users')
+        .where('user_name', '=', username ?? "")
+        .executeTakeFirst();
+
+        if (!userObj)
+        {
+            return c.json({code: 404, message: "User not found."}, 404);
+        }
 
         let hasSig:boolean = false;
 
@@ -69,10 +150,10 @@ export default async function() {
 
             const permissions = json.permissions;
 
-            if (permissions.admin && !userSnap.data()["isAdmin"])
+            if (permissions.admin && userObj.user_role < accountUtil.UserRole.Administrator)
                 return c.json({code: 403, message: `Insufficient permissions for user ${username}`});
 
-            if (permissions.betaTester && !userSnap.data()["betaTester"])
+            if (permissions.betaTester && userObj.user_role < accountUtil.UserRole.BetaTester)
                 return c.json({code: 403, message: `Insufficient permissions for user ${username}`});
 
             if (c.req.header("checkSign") == "true")
@@ -146,15 +227,12 @@ export default async function() {
     });
 
     router.get("/flags/getFlags", async (c) => {
-        const flagsRef = collection(db, "flags");
-        const flags = await getDocs(flagsRef);
+        const retFlags = await db
+        .selectFrom('flags')
+        .selectAll('flags')
+        .execute();
 
-        const retFlags:string[] = [];
-        await flags.forEach(async (doc:DocumentSnapshot) => {
-            retFlags.push(doc.id);
-        }, null);
-
-        if (retFlags.length <= 0)
+        if (retFlags.length < 0)
         {
             return c.json({code: 500, message: "Failed to retrieve flags."}, 500);
         }
@@ -170,58 +248,35 @@ export default async function() {
             return c.json({code: 400, message: "Invalid user parameters."}, 400);
         }
 
-        const flagRef = doc(db, "flags", flagId);
-        const flagSnap = await getDoc(flagRef);
+        const flag = await db
+        .selectFrom('flags')
+        .selectAll('flags')
+        .where('flag_id', '=', flagId ?? "")
+        .executeTakeFirst();
 
-        if (!flagSnap.exists())
+        if (!flag)
         {
-            return c.json({code: 404, message: `Flag ${flagId} not found.`}, 404);
+            return c.json({code: 404, message: "Flag not found."}, 404);
         }
 
-        return c.json({code: 200, message: "Success", value: flagSnap.data()["value"]}, 200);
-    });
-
-    router.get("/news/getRecentPost", ServiceMiddleware("getNewsPost"), async (c) => {
-        const q = query(collection(db, "news"));
-
-        let retObject:QueryDocumentSnapshot = new QueryDocumentSnapshot();
-        let mostRecentDate:Date = new Date(628021800000);
-        let success:Boolean = false;
-        let idChosen:string = "";
-
-        const querySnapshot = await getDocs(q);
-        querySnapshot.forEach((doc:QueryDocumentSnapshot) => {
-            const dateToCompare = new Date(parseInt(doc.data()["createdOn"]));
-            if (dateToCompare > mostRecentDate)
-            {
-                success = true;
-                retObject = doc;
-                mostRecentDate = new Date(parseInt(doc.data()["createdOn"]));
-                idChosen = doc.id;
-            }
-        }, null);
-
-        if (!success)
-        {
-            return c.json({code: 404, message: "No Posts found."}, 404);
-        }
-
-
-        return c.json({code: 200, message: "Success", id: idChosen, post: {content: retObject.data()["content"], title: retObject.data()["title"], photo: retObject.data()["photo"], author: retObject.data()["author"]}});
+        return c.json({code: 200, message: "Success", value: flag.flag_value}, 200);
     });
 
     router.get("/news/:postId", ServiceMiddleware("getNewsPost"), async (c) => {
         const { postId } = c.req.param();
 
-        const newsRef = doc(db, "news", postId);
-        const newsSnap = await getDoc(newsRef);
+        const post = await db
+        .selectFrom('news')
+        .selectAll('news')
+        .where('news_id', '=', postId ?? "")
+        .executeTakeFirst();
 
-        if (!newsSnap.exists())
+        if (!post)
         {
             return c.json({code: 404, message: `Post ${postId} not found.`}, 404);
         }
 
-        return c.json({code: 200, message: "Success", post: {content: newsSnap.data()["content"], photo: newsSnap.data()["photo"], title: newsSnap.data()["title"], author: newsSnap.data()["author"]}});
+        return c.json({code: 200, message: "Success", post: {content: post.news_content, photo: post.news_icon, title: post.news_title, author: post.news_author}});
     });
 
     
@@ -234,39 +289,53 @@ export default async function() {
         if (username == "")
         {
             username = userId;
-            const userRef = doc(db, "user", username);
-            const userSnap = await getDoc(userRef);
-            if (!userSnap.exists())
+            const userFromId = await db
+            .selectFrom('users')
+            .selectAll('users')
+            .where('user_id', '=', username ?? "")
+            .executeTakeFirst();
+            if (!userFromId)
                 return c.json({code: 404, message: `User ${userId} not found.`}, 404);
+            else
+            {
+                return c.json({code: 200, message: "Success", username: userFromId.user_name, id: userFromId.user_id, banned: userFromId.user_status == accountUtil.UserStatus.Banned, isAdmin: userFromId.user_role > accountUtil.UserRole.BetaTester, betaTester: userFromId.user_role > accountUtil.UserRole.User, profilePhoto: "DEPRECATED", MtxCurrency: userFromId.user_mtx ?? 0}, 200);
+            }
+
         }
 
-        const userRef = doc(db, "user", username);
-        const userSnap = await getDoc(userRef);
+        const user = await db
+        .selectFrom('users')
+        .selectAll('users')
+        .where('user_name', '=', username ?? "")
+        .executeTakeFirst();
 
-        const data = userSnap.data();
+        if (!user)
+        {
+            return c.json({code: 404, message: "User not found."}, 404);
+        }
 
-        return c.json({code: 200, message: "Success", username: username, id: data["id"], banned: data["banned"], isAdmin: data["isAdmin"], betaTester: data["betaTester"], profilePhoto: data["profilePhoto"], MtxCurrency: data["MtxCurrency"] ?? 0}, 200);
+        return c.json({code: 200, message: "Success", username: user.user_name, id: user.user_id, banned: user.user_status == accountUtil.UserStatus.Banned, isAdmin: user.user_role > accountUtil.UserRole.BetaTester, betaTester: user.user_role > accountUtil.UserRole.User, profilePhoto: "DEPRECATED", MtxCurrency: user.user_mtx ?? 0}, 200);
     });
 
     router.get("/getUsers", ServiceMiddleware("getUser"), ratelimitAuth, async (c) => {
         const count = c.req.query("c");
         const startAt = c.req.query("s");
         let users:any[] = [];
-        const usersCollection = collection(db, "user");
-        
+
         const actualCount = Number(count);
         const actualStartAt = Number(startAt);
 
-        const snapShot = await getDocs(usersCollection);
-        snapShot.forEach((doc:DocumentSnapshot) => {
-            const data = doc.data();
-            users.push({username: doc.id, id: data["id"], admin: data["isAdmin"],
-            betaTester: data["betaTester"], banned: data["banned"],
-            profilePhoto: data["profilePhoto"], friends: data["friends"]});
+        const usersDB = await db
+        .selectFrom('users')
+        .selectAll('users')
+        .execute();
 
-        }, null);
-
-        
+        for (let i = 0; i < usersDB.length; i++)
+        {
+            const temp = usersDB[i];
+            users.push({username: temp.user_name, id: temp.user_id, admin: temp.user_role == accountUtil.UserRole.Administrator,
+            betaTester: temp.user_role > accountUtil.UserRole.User, banned: temp.user_status == accountUtil.UserStatus.Banned});
+        }
 
         if (actualStartAt > 0)
         {

@@ -1,10 +1,9 @@
-import { DocumentReference, DocumentSnapshot, Query, QueryDocumentSnapshot, collection, deleteDoc, doc, getDoc, getDocs, query, setDoc, updateDoc, where } from "https://www.gstatic.com/firebasejs/9.8.1/firebase-firestore.js";
-import { db } from "./database.ts";
 import { logger } from "./util.ts";
 import { HonoRequest } from "https://deno.land/x/hono@v3.8.1/mod.ts";
 import * as token from "./token.ts"
 import * as account from "./routes/account.ts"
 import { SmtpClient } from "https://deno.land/x/smtp@v0.7.0/smtp.ts";
+import {db} from "./db.ts"
 
 export enum UserRole
 {
@@ -33,51 +32,57 @@ export async function HasValidJson(req:HonoRequest):Promise<boolean>
     }
 }
 
-export async function getAccountDataFromID(userId:string):Promise<Object | undefined>
-{
-    const q = query(collection(db, "user"), where("id", "==", userId));
-
-    let retVal = undefined;
-    const querySnapshot = await getDocs(q);
-    querySnapshot.forEach((doc:QueryDocumentSnapshot) => {
-        // doc.data() is never undefined for query doc snapshots
-        retVal = doc.data();
-    }, null);
-
-    return retVal;
-}
-
-export async function getAccountPropertyFromKey(userId:string, key:string):Promise<any | undefined>
-{
-    const data = await getAccountDataFromID(userId);
-
-    if (data != undefined)
-    {
-        return (data as any)[key];
-    }
-
-    return undefined;
-}
-
 export async function acceptPendingUser(username:string, email:string, password:string):Promise<boolean>
 {
-    const asdasdasdasdasdasd = doc(db, "user", username);
-            const snapasdasdasdasd = await getDoc(asdasdasdasdasdasd);
-            if (snapasdasdasdasd.exists()) {
+     
+            const existingUser = await db
+            .selectFrom('users')
+            .selectAll('users')
+            .where('user_name', '=', username)
+            .executeTakeFirst();
+
+            if (existingUser) {
+                logger.info("user already exists, ret false");
                 return false;
             }
+
+            const existingPendingUser = await db
+            .selectFrom('pending_users')
+            .selectAll('pending_users')
+            .where('user_name', '=', username)
+            .executeTakeFirst();
+
+            if (!existingPendingUser) {
+                logger.info("pending user doesnt exist, ret false")
+                return false;
+            }
+
             const id = Date.now();
             const key = await token.generateToken(id.toString());
-            await setDoc(asdasdasdasdasdasd, {
-                id: id.toString(),
-                role: UserRole.User,
-                userStatus: UserStatus.Verified,
-                password: password,
-                MtxCurrency: 0,
-                key: key
-            });
+            if (!key)
+            {
+                logger.info("failed to gen key, ret false")
+                return false;
+            }
 
-            await deleteDoc(doc(db, "pendingUsers", username));
+            await db
+            .insertInto('users')
+            .values({
+                user_name: username,
+                user_mtx: 0,
+                user_id: id.toString(),
+                user_token: key,
+                user_password: password,
+                user_role: UserRole.User,
+                user_status: UserStatus.Verified,
+                user_warnings: 0
+            })
+            .executeTakeFirst()
+
+           await db
+           .deleteFrom('pending_users')
+           .where('user_name', '=', username)
+           .executeTakeFirst()
        
             const client2 = new SmtpClient();
        
@@ -110,132 +115,45 @@ export async function getRemoteAddr(c:HonoRequest)
 
 export async function getUsernameFromUserID(userId:string)
 {
-    const q = query(collection(db, "user"), where("id", "==", userId));
-    let retVal = "";
+    const username = await db
+    .selectFrom('users')
+    .select('user_name')
+    .where('user_id', '=', userId)
+    .executeTakeFirst();
 
-    const querySnapshot = await getDocs(q);
-    querySnapshot.forEach((doc:QueryDocumentSnapshot) => {
-        retVal = doc.id;
-    }, null);
+    if (!username)
+    {
+        return "";
+    }
 
-    return retVal;
+    return username.user_name;
 }
 
 export async function unequipWeaponOfType(type:string, username:string)
 {
     try {
-    const q = query(collection(db, "user", username, "inventory"), where("ItemType", "==", type));
+    const userId = await db.
+    selectFrom('users')
+    .select('user_id')
+    .where('user_name', '=', username)
+    .executeTakeFirst();
 
-    const querySnapshot = await getDocs(q);
-    await querySnapshot.forEach(async (doc:QueryDocumentSnapshot) => {
-        await updateDoc(doc, {
-            IsEquipped: false
-        });
-    }, null);
+    if (!userId)
+    {
+        return;
+    }
+
+    await db
+    .updateTable('inventory')
+    .set({
+        item_equipped: false
+    })
+    .where('item_owner_id', '=', userId.user_id)
+    .where('item_type', '=', type)
+    .executeTakeFirst()
 }
 catch (e)
 {
     logger.error(e);
 }
-}
-
-export async function getFriendsFromUserID(userId:string) 
-{
-    const username = await getUsernameFromUserID(userId);
-
-    if (username == "")
-    {
-        return {success: false, friends: []};
-    }
-
-    const q = collection(db, "user", username, "friends");
-    const retVal:object[] = [];
-
-    const querySnapshot = await getDocs(q);
-    querySnapshot.forEach((doc:DocumentSnapshot) => {
-        retVal.push({id: doc.id, pending: doc.data()["status"] == "PENDING", sbna: doc.data()["status"] == "SENT"});
-    }, null);
-
-    return {success: true, friends: retVal};
-}
-
-export async function isUserBetaVerified(userId:string):Promise<boolean>
-{
-    const username = await getUsernameFromUserID(userId);
-    const userExistsRef = doc(db, "user", username);
-    const docSnap = await getDoc(userExistsRef);
-
-    if (docSnap.exists())
-    {
-        const data = docSnap.data();
-        if (data["betaTester"] == true)
-        {
-            return true;
-        }
-        else
-        {
-            return false;
-        }
-    }
-
-    return false;
-}
-
-export async function isUserBetaVerifiedUsername(username:string):Promise<boolean>
-{
-    const userExistsRef = doc(db, "user", username);
-    const docSnap = await getDoc(userExistsRef);
-
-    if (docSnap.exists())
-    {
-        const data = docSnap.data();
-        if (data["betaTester"] == true)
-        {
-            return true;
-        }
-        else
-        {
-            return false;
-        }
-    }
-    
-    return false;
-}
-
-export async function validateUserFromID(userId:string, username:string):Promise<boolean>
-{
-    const userExitsRef = doc(db, "user", username);
-    const docSnap = await getDoc(userExitsRef);
-
-    if (!docSnap.exists())
-    {
-        return false;
-    }
-
-    const data = await docSnap.data();
-
-    if (data["id"] == userId)
-    {
-        return true;
-    }
-
-    return false;
-}
-
-export async function InitializeInventory(username:string)
-{
-    await setDoc(doc(db, "user", username, "inventory", "W_C_Rifle"), {
-        count: 1
-    }); 
-}
-
-export async function InitializeFriends(username:string)
-{
-    await setDoc(doc(db, "user", username, "friends"), {});
-}
-
-export async function InitializeProfile(username:string)
-{
-    await InitializeInventory(username);
-    //await InitializeFriends(username);
 }

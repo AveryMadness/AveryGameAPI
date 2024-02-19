@@ -1,15 +1,14 @@
 import { Hono } from "https://deno.land/x/hono@v3.8.1/mod.ts";
 import { userAuth } from "../middleware.ts";
 import * as accountUtil from "../accountUtil.ts"
-import { deleteDoc, doc, getDoc, setDoc, updateDoc } from "https://www.gstatic.com/firebasejs/9.8.1/firebase-firestore.js";
-import { db } from "../database.ts";
+import { db } from "../db.ts";
 import { logger } from "../util.ts";
 import { ServiceMiddleware } from "../middleware.ts";
 
 export default async function() {
     const router = new Hono();
 
-    router.get("/getFriends", ServiceMiddleware("getFriend"), async (c) => {
+    /*router.get("/getFriends", ServiceMiddleware("getFriend"), async (c) => {
         const userId = c.req.query("user");
         const returnID = c.req.query("x");
 
@@ -386,6 +385,8 @@ export default async function() {
         return c.json({code: 200, message: "Success"});
         
     });
+
+    return router;*/
 
     return router;
 }

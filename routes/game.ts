@@ -2,8 +2,7 @@ import { Hono } from "https://deno.land/x/hono@v3.8.1/mod.ts";
 import { logger } from "../util.ts";
 import { userAuth, adminAuth } from "../middleware.ts";
 import * as accountUtil from "../accountUtil.ts"
-import { DocumentReference, DocumentSnapshot, QueryDocumentSnapshot, collection, doc, getDoc, getDocs, getDocsFromServer, query, setDoc, updateDoc, where } from "https://www.gstatic.com/firebasejs/9.8.1/firebase-firestore.js";
-import { db } from "../database.ts";
+import { db } from "../db.ts";
 import * as path from "https://deno.land/std@0.208.0/path/mod.ts";
 import { dirname } from "https://deno.land/std@0.206.0/path/dirname.ts";
 import { bIsMaintenanceMode } from "./admin.ts";
@@ -30,91 +29,111 @@ export default async function() {
         const item = c.req.query("item");
         const user = c.req.header("user") ?? "";
 
-        if (!item)
+        if (!item || !user)
         {
             return c.json({code: 400, message: "Invalid user parameters."}, 400);
         }
         
-        const username = await accountUtil.getUsernameFromUserID(user);
+        const Item = await db
+        .selectFrom('inventory')
+        .selectAll('inventory')
+        .where('item_owner_id', '=', user)
+        .where('item_entry_name', '=', item)
+        .executeTakeFirst();
 
-        const itemRef = doc(db, "user", username, "inventory", item);
-        const itemSnap = await getDoc(itemRef);
-
-        return c.json({code: 200, message: "Success", hasItem: itemSnap.exists()}, 200);
+        return c.json({code: 200, message: "Success", hasItem: Item != undefined}, 200);
     });
 
     router.post("/updateItem", ServiceMiddleware("updateItem"), userAuth, async (c) => {
         const postData = await c.req.json();
         const user = postData.user;
         const bNewItem = postData.bNewItem ?? false;
-        const item = postData.item ?? "";
+        const item:string = postData.item ?? "";
 
         const username = await accountUtil.getUsernameFromUserID(user);
 
         if (bNewItem)
         {
-            const count = postData.count ?? 0;
-            const itemType = postData.itemType ?? "None";
-            const bEquip = postData.bEquipItem ?? false;
-            const bIsWeapon = postData.bIsWeapon ?? false;
-            const itemPath = postData.itemPath ?? false;
+            const count:number = postData.count;
+            const itemType:string = postData.itemType;
+            const bEquip:boolean = postData.bEquipItem;
+            const bIsWeapon:boolean = postData.bIsWeapon;
+            const itemPath:string = postData.itemPath;
 
-            const itemRef = doc(db, "user", username, "inventory", item);
-            const itemSnap = await getDoc(itemRef);
+            if (!count || !itemType || bEquip == undefined || 
+                bIsWeapon == undefined || !itemPath)
+            {
+                return c.json({code: 400, message: "New item does not have enough defining variables."}, 400);
+            }
 
             if (bEquip)
             {
                 await accountUtil.unequipWeaponOfType(itemType, username);
             }
 
-            logger.info("test");
+            const ItemExistsRef = await db
+            .selectFrom('inventory')
+            .selectAll('inventory')
+            .where('item_owner_id', '=', user)
+            .where('item_entry_name', '=', item)
+            .executeTakeFirst();
 
-            try {
-
-            await setDoc(itemRef, {
-                count: count,
-                itemPath: itemPath,
-                IsWeapon: bIsWeapon,
-                IsEquipped: bEquip,
-                ItemType: itemType
-            });
-            }
-            catch (e)
+            if (ItemExistsRef)
             {
-                logger.error(e);
+                return c.json({code: 400, message: "New item already exists."}, 400);
             }
+
+            await db.
+            insertInto('inventory')
+            .values({
+                item_owner_id: user,
+                item_entry_name: item,
+                item_equipped: bEquip,
+                item_weapon: bIsWeapon,
+                item_type: itemType,
+                item_count: count,
+                item_path: itemPath
+            })
+            .executeTakeFirst();
 
             return c.json({code: 200, message: "Success"}, 200);
         }
 
-        const itemRef = doc(db, "user", username, "inventory", item);
-        const itemSnap = await getDoc(itemRef);
+        const ItemExistsRef = await db
+            .selectFrom('inventory')
+            .selectAll('inventory')
+            .where('item_owner_id', '=', user)
+            .where('item_entry_name', '=', item)
+            .executeTakeFirst();
 
-        if (!itemSnap.exists())
+        if (!ItemExistsRef)
         {
             return c.json({code: 404, message: `Item ${item} not found.`}, 404);
         }
 
-        const data = itemSnap.data();
+        const count:number = postData.count ?? ItemExistsRef.item_count;
+        const itemType:string = postData.itemType ?? ItemExistsRef.item_type;
+        const bEquip:boolean = postData.bEquipItem ?? ItemExistsRef.item_equipped;
+        const bIsWeapon:boolean = postData.bIsWeapon ?? ItemExistsRef.item_weapon;
+        const itemPath:string = postData.itemPath ?? ItemExistsRef.item_path;
 
-        const count = postData.count ?? data.count;
-        const itemType = postData.itemType ?? data.ItemType;
-        const bEquip = postData.bEquipItem ?? data.IsEquipped;
-        const bIsWeapon = postData.bIsWeapon ?? data.IsWeapon;
-        const itemPath = postData.itemPath ?? data.itemPath;
-
-        if (postData.bEquipItem)
+        if (postData.bEquipItem || !ItemExistsRef.item_equipped)
         {
             await accountUtil.unequipWeaponOfType(itemType, username);
         }
 
-        await updateDoc(itemRef, {
-            count: count,
-            ItemType: itemType,
-            IsEquipped: bEquip,
-            IsWeapon: bIsWeapon,
-            itemPath: itemPath
-        });
+        await db.
+        updateTable('inventory')
+        .set({
+            item_equipped: bEquip,
+            item_weapon: bIsWeapon,
+            item_type: itemType,
+            item_count: count,
+            item_path: itemPath
+        })
+        .where('item_entry_name', '=', item)
+        .where('item_owner_id', '=', user)
+        .execute();
 
         return c.json({code: 200, message: "Success"}, 200);
 
@@ -129,17 +148,19 @@ export default async function() {
             return c.json({code: 400, message: "Invalid user parameters."}, 400);
         }
 
-        const username = await accountUtil.getUsernameFromUserID(user);
-        
-        const userRef = doc(db, "user", username, "inventory", item);
-        const userSnap = await getDoc(userRef);
+        const Item = await db
+        .selectFrom('inventory')
+        .selectAll('inventory')
+        .where('item_owner_id', '=', user)
+        .where('item_entry_name', '=', item)
+        .executeTakeFirst();
 
-        if (!userSnap.exists())
+        if (!Item)
         {
             return c.json({code: 404, message: `Item ${item} not found.`}, 404);
         }
 
-        return c.json({code: 200, message: "Success", count: userSnap.data()["count"] ?? 0, itemPath: userSnap.data()["itemPath"] ?? "", bIsWeapon: userSnap.data()["IsWeapon"] ?? false, bIsEquipped: userSnap.data()["IsEquipped"] ?? false, itemType: userSnap.data()["ItemType"] ?? "None"});
+        return c.json({code: 200, message: "Success", count: Item.item_count ?? 0, itemPath: Item.item_path ?? "", bIsWeapon: Item.item_weapon ?? false, bIsEquipped: Item.item_equipped ?? false, itemType: Item.item_type});
     });
 
     router.get("/getEquippedWeapons", ServiceMiddleware("getItem"), userAuth, async (c) => {
@@ -177,7 +198,7 @@ export default async function() {
         return c.json({code: 200, message: "Success", primary: primary, secondary: secondary, bHasPrimary: primaryExists, bHasSecondary: secondaryExists});
     });
 
-    router.post("/offer/claimOffer", ServiceMiddleware("claimOffer"), userAuth, async (c) => {
+    /*router.post("/offer/claimOffer", ServiceMiddleware("claimOffer"), userAuth, async (c) => {
         const postData = await c.req.json();
         const user = postData.user;
         const offerId = postData.offer;
@@ -304,7 +325,7 @@ export default async function() {
             rewards: rewards
         }});
     
-    });
+    });*/
 
     router.get("/checkGameVersion", ServiceMiddleware("checkGameVersion"), async (c) => {
         const gameVersion = await c.req.query("version");
@@ -386,7 +407,7 @@ export default async function() {
         return c.json({code: 200, message: "Success", playlists: playlists});
     });
 
-    router.get("/getStats", ServiceMiddleware("getAndSetStatValue"), userAuth, async (c) => {
+    /*router.get("/getStats", ServiceMiddleware("getAndSetStatValue"), userAuth, async (c) => {
         const userId = await c.req.header("user") ?? "";
 
         const username = await accountUtil.getUsernameFromUserID(userId);
@@ -470,7 +491,7 @@ export default async function() {
         }
 
         return c.json({code: 200, message: "Success"}, 200);
-    });
+    });*/
 
     return router;
 }

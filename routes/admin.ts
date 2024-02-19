@@ -1,7 +1,6 @@
 import { Hono } from "https://deno.land/x/hono@v3.8.1/mod.ts";
 import * as accountUtil from "../accountUtil.ts";
-import { DocumentReference, DocumentSnapshot, _EmptyAppCheckTokenProvider, collection, deleteDoc, doc, getDoc, getDocs, setDoc, updateDoc } from "https://www.gstatic.com/firebasejs/9.8.1/firebase-firestore.js";
-import { db } from "../database.ts";
+import { db } from "../db.ts";
 import { adminAuth } from "../middleware.ts";
 import { logger } from "../util.ts";
 import { to } from "https://deno.land/x/optic@1.3.11/logger/profileMeasure.ts";
@@ -31,39 +30,56 @@ export default async function() {
             return c.json({code: 400, message: "bruh"}, 400);
         }
 
-        const ref = doc(db, "pendingUsers", user);
-        const snap = await getDoc(ref);
-
-        if (!snap.exists())
+        const pendingUser = await db
+        .selectFrom('pending_users')
+        .selectAll('pending_users')
+        .where('user_name', '=', user ?? "")
+        .executeTakeFirst()
+        
+        if (!pendingUser)
         {
-            return c.json({code: 404, message: `User ${user} not found.`}, 404);
+            return c.json({code: 404, message: "User not found."}, 404);
         }
 
         return c.json({code: 200, message: "Success", user: {
-            username: snap.data()["username"],
-            email: snap.data()["email"],
-            bio: snap.data()["bio"],
+            username: pendingUser.user_name,
+            email: pendingUser.user_email,
+            bio: pendingUser.user_bio,
         }});
     });
 
     router.get("/pending/getPendingUsers", ServiceMiddleware("getPendingUsers"), adminAuth, async (c) => {
-        const pendingUsersRef = collection(db, "pendingUsers");
-        const pendingUsers = await getDocs(pendingUsersRef);
+        const pendingUsers = await db
+        .selectFrom('pending_users')
+        .selectAll('pending_users')
+        .execute()
 
         const retVal:object[] = [];
-        pendingUsers.forEach(async (doc:DocumentSnapshot) => {
-            retVal.push(doc.id);
-        }, null);
+        for (let i = 0; i < pendingUsers.length; i++)
+        {
+            retVal.push(pendingUsers[i]);
+        }
 
         return c.json({code: 200, message: "Success", pendingUsers: retVal});
     });
 
     router.post("/pending/acceptPendingUser", ServiceMiddleware("acceptDenyPendingUser"), adminAuth, async (c) => {
         const postData = await c.req.json();
-        const username = postData["username"];
-        const email = postData["email"];
-        const bio = postData["bio"];
-        const password = postData["password"];
+        const username = postData["user"];
+
+        const pendingUser = await db
+        .selectFrom('pending_users')
+        .selectAll('pending_users')
+        .where('user_name', '=', username ?? "")
+        .executeTakeFirst()
+
+        if (!pendingUser)
+        {
+            return c.json({code: 404, message: "User not found."}, 404);
+        }
+
+        const password = pendingUser.user_password;
+        const email = pendingUser.user_email;
 
         await accountUtil.acceptPendingUser(username, email, password);
 
@@ -74,19 +90,20 @@ export default async function() {
         const postData = await c.req.json();
         const user = postData["user"];
 
-        const thing = doc(db, "pendingUsers", user);
-        const snap = await getDoc(thing);
+        const pendingUser = await db
+        .selectFrom('pending_users')
+        .selectAll('pending_users')
+        .where('user_name', '=', user ?? "")
+        .executeTakeFirst()
 
-        if (!snap.exists())
+        if (!pendingUser)
         {
-            return c.json({code: 404, message: `User ${user} not found.`}, 404);
+            return c.json({code: 404, message: "User not found."}, 404);
         }
-
-        await deleteDoc(thing);
 
         const client = new SmtpClient();
 
-        await client.connect({
+        await client.connectTLS({
             hostname: "smtp.gmail.com",
             port: 465,
             username: "averymadness62@gmail.com",
@@ -94,13 +111,18 @@ export default async function() {
         });
 
         await client.send({
-            from: "averygame.averymadness.me",
-            to: snap.data()["email"],
+            from: "averygame@averymadness.me",
+            to: pendingUser.user_email,
             subject: "Avery Game user submission",
             content: "Your Avery Game user submission has been denied."
         });
 
         await client.close();
+
+        const result = await db
+        .deleteFrom('pending_users')
+        .where('user_name', '=', user ?? "")
+        .execute()
 
         return c.json({code: 200, message: "Success"});
     });
@@ -187,18 +209,21 @@ export default async function() {
         return c.text("Not implemented");
     });
 
-    router.post("/offer/createOffer", ServiceMiddleware("createOffer"), adminAuth, async (c) => {
+    /*router.post("/offer/createOffer", ServiceMiddleware("createOffer"), adminAuth, async (c) => {
         const postData = await c.req.json();
         const username = postData.username;
-        const offer = postData.offer;
-        logger.warn(`User ${username} is creating an offer with name '${offer.offerName}'`);
+        const daOffer = postData.offer;
+        logger.warn(`User ${username} is creating an offer with name '${daOffer.offerName}'`);
         
-        const offerRef = doc(db, "offers", offer.offerName);
-        const offerSnap = await getDoc(offerRef);
+        const offer = await db
+        .selectFrom('offers')
+        .selectAll('offers')
+        .where('offer_name', '=', daOffer.offerName)
+        .executeTakeFirst()
 
-        if (offerSnap.exists())
+        if (offer)
         {
-            return c.json({code: 400, message: `Offer ${offer.offerName} alredy exists.`});
+            return c.json({code: 400, message: `Offer ${daOffer.offerName} alredy exists.`});
         }
 
         await setDoc(offerRef, {
@@ -226,7 +251,7 @@ export default async function() {
         }
 
         return c.json({code: 200, message: "Success"});
-    });
+    });*/
 
     router.post("/flags/setEventFlag", ServiceMiddleware("setOrDeleteEventFlag"), adminAuth, async (c) => {
         const postData = await c.req.json();
@@ -243,11 +268,33 @@ export default async function() {
             return c.json({code: 400, message: "Badly formatted flag."}, 400);
         }
 
-        const flagsRef = doc(db, "flags", flag);
+        const flagObj = await db
+        .selectFrom('flags')
+        .selectAll('flags')
+        .where('flag_id', '=', flag ?? "")
+        .executeTakeFirst()
 
-        await setDoc(flagsRef, {
-            value: value
-        });
+        if (flagObj)
+        {
+            const result = await db
+            .updateTable('flags')
+            .set({
+                flag_id: flag,
+                flag_value: value ?? ""
+            })
+            .where('flag_id', '=', flag)
+            .executeTakeFirst();
+        }
+        else
+        {
+            const result = await db
+            .insertInto('flags')
+            .values({
+                flag_id: flag,
+                flag_value: value ?? ""
+            })
+            .executeTakeFirst();
+        }
 
         return c.json({code: 200, message: "Success"}, 200);
     });
@@ -262,15 +309,21 @@ export default async function() {
             return c.json({code: 400, message: "Invalid user parameters."}, 400);
         }
 
-        const newsRef = doc(db, "flags", flag);
-        const newsSnap = await getDoc(newsRef);
+        const flagRef = await db
+        .selectFrom('flags')
+        .selectAll('flags')
+        .where('flag_id', '=', flag)
+        .executeTakeFirst();
 
-        if (!newsSnap.exists())
+
+        if (!flagRef)
         {
             return c.json({code: 404, message: `Flag ${flag} not found.`}, 404);
         }
 
-        await deleteDoc(newsRef);
+        await db
+        .deleteFrom('flags')
+        .where('flag_id', '=', flag);
 
         return c.json({code: 200, message: "Success"}, 200);
     });
@@ -284,15 +337,19 @@ export default async function() {
             return c.json({code: 400, message: "Invalid user parameters"}, 400);
         }
 
-        const newsRef = doc(db, "news", postId);
-        const newsSnap = await getDoc(newsRef);
+        const news = await db
+        .selectFrom('news')
+        .selectAll('news')
+        .where('news_id', '=', postId);
 
-        if (!newsSnap.exists())
+        if (!news)
         {
             return c.json({code: 404, message: `Post ${postId} not found.`}, 404);
         }
 
-        await deleteDoc(newsRef);
+        await db
+        .deleteFrom('news')
+        .where('news_id', '=', postId);
 
         return c.json({code: 200, message: "Success"});
     })
@@ -309,16 +366,17 @@ export default async function() {
         }
 
         const id = (Math.floor(Date.now() * 2 / 1.8)).toString();
-        const creationData = Date.now().toString();
-
-        const newsRef = doc(db, "news", id);
+        const creationDate = Date.now().toString();
 
         let authorName = "";
 
-        const userRef = doc(db, "user", postData["username"]);
-        const userSnap = await getDoc(userRef);
+        const user = await db
+        .selectFrom('users')
+        .selectAll('users')
+        .where('user_name', '=', postData["username"] ?? "")
+        .executeTakeFirst()
 
-        const uid = userSnap.data()["id"];
+        const uid = user?.user_id;
 
         if (uid == "1699465204298")
         {
@@ -329,13 +387,17 @@ export default async function() {
             authorName = postData["username"];
         }
 
-        await setDoc(newsRef, {
-            "content": content,
-            "title": title,
-            "photo": photo,
-            "createdOn": creationData,
-            "author": authorName
-        });
+        await db.
+        insertInto('news')
+        .values({
+            news_id: id ?? "",
+            news_author: authorName,
+            news_content: content,
+            news_creation_date: creationDate ?? "",
+            news_icon: photo,
+            news_title: title
+        })
+        .executeTakeFirst()
 
         return c.json({code: 200, message: "Success", id: id}, 200);
 
@@ -358,12 +420,13 @@ export default async function() {
             return c.json({code: 404, message: `User ${user} not found.`}, 404);
         }
 
-        const docRef = doc(db, "user", username);
-        const docSnap = await getDoc(docRef);
-
-        await updateDoc(docRef, {
-            MtxCurrency: amount
-        });
+        const result = await db.
+        updateTable('users')
+        .set({
+            user_mtx: amount
+        })
+        .where('user_name', '=', username)
+        .executeTakeFirst();
 
         return c.json({code: 200, message: "Success"}, 200);
         
@@ -386,18 +449,23 @@ export default async function() {
             return c.json({code: 403, message: `Cannot delete user ${username}. Insufficient Permissions.`}, 403);
         }
 
-        const docRef = doc(db, "user", username);
-        const docSnap = await getDoc(docRef);
+        const user = await db
+        .selectFrom('users')
+        .selectAll('users')
+        .where('user_name', '=', username)
+        .executeTakeFirst();
 
-        const deleterRef = doc(db, "user", deleterUsername);
-        const deleterSnap = await getDoc(deleterRef);
+        const deleter = await db
+        .selectFrom('users')
+        .selectAll('users')
+        .where('user_name', '=', deleterUsername)
+        .executeTakeFirst();
 
-        if (docSnap.data()["isAdmin"] == true && deleterSnap.data()["id"] != "1698121131246")
-        {
-            return c.json({code: 403, message: `Cannot delete user ${username}. Insufficient Permissions.`}, 403);
-        }
+        await db
+        .deleteFrom('users')
+        .where('user_name', "=", username)
+        .executeTakeFirst();
 
-        await deleteDoc(docRef);
         return c.json({code: 200, message: "Success"}, 200);
     });
 
@@ -416,17 +484,18 @@ export default async function() {
             return c.text(`User ${userId} not found.`, 404);
         }
 
-        const userRef = doc(db, "user", username);
-        const userSnap = await getDoc(userRef);
+        const user = await db
+        .selectFrom('users')
+        .selectAll('users')
+        .where('user_name', '=', username ?? "")
+        .executeTakeFirst();
 
-        if (!userSnap.exists())
+        if (!user)
         {
-            return c.text("Unknown profile error.", 500);
+            return c.json({code: 404, message: "User not found."}, 404);
         }
 
-        const data = userSnap.data();
-
-        if (data["isAdmin"] == true)
+        if (user.user_role > accountUtil.UserRole.BetaTester)
         {
             return c.text("True", 200);
         }
@@ -437,17 +506,15 @@ export default async function() {
     });
 
     
-    router.post("/setAdmin", ServiceMiddleware("setAdmin"), adminAuth, async (c) => {
+    router.post("/setRole", ServiceMiddleware("setAdmin"), adminAuth, async (c) => {
         const postData = await c.req.json();
         const userToSet = postData["user"];
-        const valueToSet = postData["admin"];
+        const valueToSet = postData["role"];
 
         if (!userToSet || valueToSet == null)
         {
             return c.json({code: 400, message: "Invalid user parameters."}, 400);
         }
-
-        const actualValue = Boolean(valueToSet);
 
         const username = await accountUtil.getUsernameFromUserID(userToSet);
 
@@ -456,20 +523,22 @@ export default async function() {
             return c.json({code: 404, message: `User ${userToSet} not found.`}, 404);
         }
 
-        const userRef = doc(db, "user", username);
-        
-        await updateDoc(userRef, {
-            role: accountUtil.UserRole.Administrator
-        });
+        await db
+        .updateTable('users')
+        .set({
+            user_role: valueToSet
+        })
+        .where('user_name', '=', username ?? "")
+        .executeTakeFirst();
 
         return c.json({code: 200, message: "Success"}, 200);
 
     });
 
-    router.post("/setBanned", ServiceMiddleware("banUser"), adminAuth, async (c) => {
+    router.post("/setStatus", ServiceMiddleware("banUser"), adminAuth, async (c) => {
         const postData = await c.req.json();
         const userToSet = postData["user"];
-        const valueToSet = postData["banned"];
+        const valueToSet = postData["status"];
 
         if (!userToSet || valueToSet == null)
         {
@@ -485,47 +554,14 @@ export default async function() {
             return c.json({code: 404, message: `User ${userToSet} not found.`}, 404);
         }
 
-        const userRef = doc(db, "user", username);
         
-        await updateDoc(userRef, {
-            banned: actualValue
-        });
-
-        return c.json({code: 200, message: "Success"}, 200);
-
-    });
-
-    router.post("/setBetaTester", adminAuth, async (c) => {
-        const postData = await c.req.json();
-        const userToSet = postData["user"];
-        const valueToSet = postData["betaTester"];
-
-        if (!userToSet || valueToSet == null)
-        {
-            return c.json({code: 400, message: "Invalid user parameters."}, 400);
-        }
-
-        const actualValue = Boolean(valueToSet);
-
-        const username = await accountUtil.getUsernameFromUserID(userToSet);
-
-        if (username == "")
-        {
-            return c.json({code: 404, message: `User ${userToSet} not found.`}, 404);
-        }
-
-        const userRef = doc(db, "user", username);
-        const userSnap = await getDoc(userRef);
-
-        if (userSnap.data()["role"] == UserRole.Administrator)
-        {
-            return c.json({code: 200, message: "Success"});
-        }
-        
-        
-        await updateDoc(userRef, {
-            role: accountUtil.UserRole.BetaTester
-        });
+        await db
+        .updateTable('users')
+        .set({
+            user_status: valueToSet
+        })
+        .where('user_name', '=', username ?? "")
+        .executeTakeFirst();
 
         return c.json({code: 200, message: "Success"}, 200);
 

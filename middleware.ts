@@ -1,11 +1,9 @@
 import type { MiddlewareHandler } from "https://deno.land/x/hono@v3.8.1/mod.ts";
-import { db } from "./database.ts";
-import { doc, getDoc } from "https://www.gstatic.com/firebasejs/9.8.1/firebase-firestore.js";
+import { db } from "./db.ts";
 import { checkHashedPassword } from "./hashutil.ts";
 import * as token from "./token.ts";
 import { logger, backendHostType, BackendHostType } from "./util.ts";
 import * as accountUtil from "./accountUtil.ts"
-import auth from "./routes/auth.ts";
 import * as path from "https://deno.land/std@0.208.0/path/mod.ts";
 
 
@@ -14,6 +12,7 @@ async function getJson(filePath: string) {
 }
 
 const rateLimits:string[] = [];
+const connectedIps:string[] = [];
 
 export const HostTypeMiddleware = (hostType:BackendHostType = backendHostType):MiddlewareHandler => {
     return async (c, next) => {
@@ -76,6 +75,7 @@ export const RateLimitedMiddleware = ():MiddlewareHandler => {
         
         if (address == "")
         {
+            logger.warn("Rate-limit will not work without cloudflare hosting.");
             return await next();
         }
 
@@ -106,25 +106,28 @@ export const AdminMiddleware = ():MiddlewareHandler => {
        
         
         if (username != null && password != null) {
-            const userExitsRef = doc(db, "user", username);
-            const docSnap = await getDoc(userExitsRef);
-       
-            if (!docSnap.exists()) {
-                c.status(404);
-                return c.json({
-                    error: 404,
-                    message: `User ${username} not found.`
-                });
+
+            const userQuery = await db.
+            selectFrom('users')
+            .selectAll('users')
+            .where('user_name', '=', username)
+            .execute();
+
+            const user = userQuery[0];
+
+            if (!user)
+            {
+                return c.json({code: 404, message: "User not found."}, 404);
             }
        
-            if (docSnap.data()["userStatus"] == accountUtil.UserStatus.Banned) {
+            if (user.user_status == accountUtil.UserStatus.Banned) {
                 return c.json({
                     code: 403,
                     message: `User ${username} is banned.`
                 }, 403);
             }
        
-            const hash = docSnap.data()["password"];
+            const hash = user.user_password;
        
             if (!await checkHashedPassword(hash, password)) {
                 c.status(403);
@@ -136,7 +139,7 @@ export const AdminMiddleware = ():MiddlewareHandler => {
        
            
        
-            if (docSnap.data()["role"] < accountUtil.UserRole.Administrator) {
+            if (user.user_role < accountUtil.UserRole.Administrator) {
                 return c.json({
                     code: 403,
                     message: `Invalid permissions for user ${username}.`
@@ -158,17 +161,22 @@ export const AdminMiddleware = ():MiddlewareHandler => {
                 return c.json({code: 403, message: `Authentication key '${key}' incorrect.`}, 403) 
             }
 
-            const userRef = doc(db, "user", username);
-            const userSnap = await getDoc(userRef);
+            const userQuery = await db.
+            selectFrom('users')
+            .selectAll('users')
+            .where('user_name', '=', username)
+            .execute();
 
-            if (userSnap.data()["userStatus"] == accountUtil.UserStatus.Banned) {
+            const user = userQuery[0];
+
+            if (user.user_status == accountUtil.UserStatus.Banned) {
                 return c.json({
                     code: 403,
                     message: `User ${username} is banned.`
                 }, 403);
             }
 
-            if (userSnap.data()["role"] < accountUtil.UserRole.Administrator) 
+            if (user.user_role < accountUtil.UserRole.Administrator) 
             {
                 return c.json({code: 403, message: `Invalid permissions for user '${username}'`}, 403)
             }
@@ -197,10 +205,16 @@ export const UsernamePasswordMiddleware = ():MiddlewareHandler => {
        
         
         if (username != null && password != null) {
-            const userExitsRef = doc(db, "user", username);
-            const docSnap = await getDoc(userExitsRef);
+
+            const userQuery = await db.
+            selectFrom('users')
+            .selectAll('users')
+            .where('user_name', '=', username)
+            .execute();
+
+            const user = userQuery[0];
        
-            if (!docSnap.exists()) {
+            if (!user) {
                 c.status(404);
                 return c.json({
                     error: 404,
@@ -208,14 +222,14 @@ export const UsernamePasswordMiddleware = ():MiddlewareHandler => {
                 });
             }
        
-            if (docSnap.data()["userStatus"] == accountUtil.UserStatus.Banned) {
+            if (user.user_status == accountUtil.UserStatus.Banned) {
                 return c.json({
                     code: 403,
                     message: `User ${username} is banned.`
                 }, 403);
             }
        
-            const hash = docSnap.data()["password"];
+            const hash = user.user_password;
        
             if (!await checkHashedPassword(hash, password)) {
                 c.status(403);
@@ -241,10 +255,18 @@ export const UsernamePasswordMiddleware = ():MiddlewareHandler => {
                 return c.json({code: 403, message: `Authentication key '${key}' incorrect.`}, 403) 
             }
 
-            const userRef = doc(db, "user", username);
-            const userSnap = await getDoc(userRef);
+            const user = await db.
+            selectFrom('users')
+            .selectAll('users')
+            .where('user_name', '=', username)
+            .executeTakeFirst()
 
-            if (userSnap.data()["userStatus"] == accountUtil.UserStatus.Banned) {
+            if (!user)
+            {
+                return c.json({code: 404, message: "User not found."}, 404);
+            }
+
+            if (user.user_status == accountUtil.UserStatus.Banned) {
                 return c.json({
                     code: 403,
                     message: `User ${username} is banned.`
