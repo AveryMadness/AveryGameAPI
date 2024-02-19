@@ -1,10 +1,11 @@
+// deno-lint-ignore require-await
 import { Hono } from "https://deno.land/x/hono@v3.8.1/mod.ts";
 import { logger } from "../util.ts";
-import { userAuth, adminAuth } from "../middleware.ts";
+import { userAuth } from "../middleware.ts";
 import * as accountUtil from "../accountUtil.ts"
 import { db } from "../db.ts";
 import * as path from "https://deno.land/std@0.208.0/path/mod.ts";
-import { dirname } from "https://deno.land/std@0.206.0/path/dirname.ts";
+//import { dirname } from "https://deno.land/std@0.206.0/path/dirname.ts";
 import { bIsMaintenanceMode } from "./admin.ts";
 import { ServiceMiddleware } from "../middleware.ts";
 
@@ -14,8 +15,6 @@ async function getJson(filePath: string) {
 
 export default async function() {
     const router = new Hono();
-
-    const currentGameVersion = Deno.env.get("GAME_VERSION") ?? "0.25.0";
 
     router.get("/heartbeat", async (c) => {
         if (bIsMaintenanceMode)
@@ -175,10 +174,10 @@ export default async function() {
 
         const q = query(collection(db, "user", username, "inventory"), where("IsEquipped", "==", true), where("IsWeapon", "==", true));
 
-        let primary:any = {};
-        let secondary:any = {};
-        let primaryExists:boolean = false;
-        let secondaryExists:boolean = false;
+        let primary:object = {};
+        let secondary:object = {};
+        let primaryExists = false;
+        let secondaryExists = false;
 
         const querySnapshot = await getDocs(q);
         await querySnapshot.forEach(async (doc:QueryDocumentSnapshot) => {
@@ -425,7 +424,7 @@ export default async function() {
             retVal.set(doc.id, doc.data()["value"]);
         }, null);
 
-        let retObj = JSON.parse("{}");
+        const retObj = JSON.parse("{}");
 
         retVal.forEach((val, key) => {
             retObj[key] = val;

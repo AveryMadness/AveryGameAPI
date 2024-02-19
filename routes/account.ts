@@ -1,3 +1,5 @@
+// deno-lint-ignore require-await
+
 import { Hono } from "https://deno.land/x/hono@v3.8.1/mod.ts";
 import * as hashLibrary from "../hashutil.ts"
 import { logger } from "../util.ts";
@@ -97,7 +99,7 @@ export default async function() {
     router.post("/authenticateAuthKey", ServiceMiddleware("login"), async (c) => {
         const postData = await c.req.json();
         const userId = postData["user"];
-        const key = postData["key"];
+        const _key = postData["key"];
 
         const tok = await token.getTokenFromUserId(userId);
 
@@ -212,10 +214,6 @@ export default async function() {
 
             if (validPass)
             {
-                const useragent = c.req.header("User-Agent");
-                let shouldKeyExpire = true;
-                if (useragent?.includes("AveryGame/"))
-                    shouldKeyExpire = false;
                 c.status(200);
                 const key = await token.generateToken(user.user_id);
                 return c.json({code: 200, message: "Success", key: key, userId: user.user_id});

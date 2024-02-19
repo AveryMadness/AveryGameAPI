@@ -1,14 +1,14 @@
 import { accessToken } from "https://deno.land/x/access_token@1.0.0/mod.ts";
-import { logger } from "./util.ts";
-import { BufReader, readLines } from "https://deno.land/std@0.92.0/io/bufio.ts";
+//import { logger } from "./util.ts";
+import { BufReader } from "https://deno.land/std@0.92.0/io/bufio.ts";
 import { TextProtoReader } from "https://deno.land/std@0.92.0/textproto/mod.ts";
-import { userAuth } from "./middleware.ts";
+//import { userAuth } from "./middleware.ts";
 import { getUsernameFromUserID } from "./accountUtil.ts";
 import { db } from "./db.ts";
 
 export const tokens:Map<string, string> = new Map();
 
-export async function generateToken(userId:string, force:boolean = false)
+export async function generateToken(userId:string, force = false)
 {
     const username = await getUsernameFromUserID(userId);
 
@@ -60,9 +60,12 @@ export async function invalidateToken(token:string)
         BufReader(await Deno.open('permenantKeys.txt', { read: true})));
         
     let line;
-    let allLines:string = "";
-    while (line = await tp.readLine())
-    {
+    let allLines = "";
+    while (true)
+    { 
+        line = await tp.readLine();
+        if (!line)
+            break;
         const keyandid = line.split(";");
         const key = keyandid[0];
             

@@ -1,13 +1,15 @@
+// deno-lint-ignore require-await
+
 import { Hono } from "https://deno.land/x/hono@v3.8.1/mod.ts";
 import * as accountUtil from "../accountUtil.ts";
 import { db } from "../db.ts";
 import { adminAuth } from "../middleware.ts";
 import { logger } from "../util.ts";
-import { to } from "https://deno.land/x/optic@1.3.11/logger/profileMeasure.ts";
-import { toPathString } from "https://deno.land/std@0.206.0/fs/_util.ts";
-import { UserRole, UserStatus } from "../accountUtil.ts";
-import * as account from "./account.ts";
-import * as token from "../token.ts";
+//import { to } from "https://deno.land/x/optic@1.3.11/logger/profileMeasure.ts";
+//import { toPathString } from "https://deno.land/std@0.206.0/fs/_util.ts";
+import { UserRole } from "../accountUtil.ts";
+//import * as account from "./account.ts";
+//import * as token from "../token.ts";
 import { SmtpClient } from "https://deno.land/x/smtp/mod.ts";
 import { ServiceMiddleware } from "../middleware.ts";
 import * as path from "https://deno.land/std@0.208.0/path/mod.ts";
@@ -128,7 +130,7 @@ export default async function() {
     });
 
     router.post("/internal/setService", ServiceMiddleware("updateService"), adminAuth, async (c) => {
-        let json = await getJson(path.join(".", "data", "services.json"));
+        const json = await getJson(path.join(".", "data", "services.json"));
 
         const postData = await c.req.json();
         const id = postData.service;
@@ -139,7 +141,6 @@ export default async function() {
             return c.json({code: 404, message: `Service ${id} not found.`}, 404);
         }
         
-        const obj = json["services"][id];
         json["services"][id].enabled = enabled;
         const jsonstr = JSON.stringify(json, null, 2);
         const file = await Deno.create(path.join(".", "data", "services.json"));
@@ -201,7 +202,7 @@ export default async function() {
     });
 
     router.post("/pak/uploadPak", adminAuth, async (c) => {
-        const body = await c.req.arrayBuffer();
+        const _body = await c.req.arrayBuffer();
         const user = c.req.header("user");
         const fileName = c.req.header("fileName");
         logger.warn(`User ${user} is uploading pak ${fileName}.`);
@@ -299,9 +300,7 @@ export default async function() {
         return c.json({code: 200, message: "Success"}, 200);
     });
 
-    router.post("/flags/delete/:flag", ServiceMiddleware("setOrDeleteEventFlag"), adminAuth, async (c) => {
-        const postData = await c.req.json();
-        
+    router.post("/flags/delete/:flag", ServiceMiddleware("setOrDeleteEventFlag"), adminAuth, async (c) => {        
         const {flag} = c.req.param();
 
         if (!flag)

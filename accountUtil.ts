@@ -1,7 +1,7 @@
 import { logger } from "./util.ts";
 import { HonoRequest } from "https://deno.land/x/hono@v3.8.1/mod.ts";
 import * as token from "./token.ts"
-import * as account from "./routes/account.ts"
+//import * as account from "./routes/account.ts"
 import { SmtpClient } from "https://deno.land/x/smtp@v0.7.0/smtp.ts";
 import {db} from "./db.ts"
 
@@ -23,7 +23,7 @@ export async function HasValidJson(req:HonoRequest):Promise<boolean>
 {
     try
     {
-        const json = await req.json();
+        const _json = await req.json();
         return true;
     }
     catch
@@ -107,10 +107,10 @@ export async function acceptPendingUser(username:string, email:string, password:
 
 export async function getRemoteAddr(c:HonoRequest)
 {
-    const raw:any = c.raw;
+    /*const raw:any = c.raw;
     const innerRequestSymbol = Object.getOwnPropertySymbols(raw).find(x => x.description === "request")!
     const innerRequest = raw[innerRequestSymbol];
-    return innerRequest.remoteAddr;
+    return innerRequest.remoteAddr;*/
 }
 
 export async function getUsernameFromUserID(userId:string)

@@ -5,7 +5,7 @@ import { ratelimitAuth, userAuth } from "../middleware.ts";
 import * as accountUtil from "../accountUtil.ts";
 import * as path from "https://deno.land/std@0.208.0/path/mod.ts";
 import {existsSync} from "https://deno.land/std@0.206.0/fs/mod.ts";
-import { Md5, Message } from "https://deno.land/std@0.119.0/hash/md5.ts";
+import { Md5 } from "https://deno.land/std@0.119.0/hash/md5.ts";
 import { ServiceMiddleware } from "../middleware.ts";
 import * as fs from "https://deno.land/std@0.122.0/node/fs.ts";
 import { UserStatus } from "./account.ts";
@@ -92,6 +92,33 @@ export default async function() {
         
         return c.json({code: 404, message: `Key ${key} not found.`}, 404);
         
+    });
+
+    router.get("/manifest/:key", async (c) => {
+        const {key} = c.req.param();
+
+        if (key == "averygame")
+        {
+            const playlists = await getJson(path.join(".", "data", "playlist.json"));
+            const version = await getJson(path.join(".", "data", "version.json"));
+            const services = await getJson(path.join(".", "data", "services.json"));
+
+            return c.json({code: 200, message: "Success", manifest: {
+                _title: "Avery Game",
+                _activeDate: new Date(Date.now()).toISOString(),
+                _lastModified: new Date(Date.now()).toISOString(),
+                _locale: "en-US",
+                playlists: playlists,
+                versions: {
+                    versions: version.playableVersions,
+                    types: version.versionType
+                }
+            }})
+        }
+        else
+        {
+            return c.json({code: 404, message: "Key " + key + " not found."}, 404);
+        }
     });
 
     router.get("/cloudstorage/:ini", ServiceMiddleware("cloudstorage"), async (c) => {
