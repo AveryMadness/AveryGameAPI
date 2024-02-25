@@ -258,6 +258,9 @@ export default async function() {
         const postData = await c.req.json();
         const flag = postData.flag;
         const value = postData["value"];
+        const activeAt = postData["activeAt"];
+        const activeTo = postData["activeTo"];
+
 
         if (!flag || (!value && isNaN(value)))
         {
@@ -281,7 +284,9 @@ export default async function() {
             .updateTable('flags')
             .set({
                 flag_id: flag,
-                flag_value: value ?? ""
+                flag_value: value ?? "",
+                active_at: activeAt ?? flagObj.active_at,
+                active_until: activeTo ?? flagObj.active_until
             })
             .where('flag_id', '=', flag)
             .executeTakeFirst();
@@ -292,7 +297,9 @@ export default async function() {
             .insertInto('flags')
             .values({
                 flag_id: flag,
-                flag_value: value ?? ""
+                flag_value: value ?? "",
+                active_at: activeAt ?? new Date().toISOString(),
+                active_until: activeTo ?? new Date().toISOString()
             })
             .executeTakeFirst();
         }

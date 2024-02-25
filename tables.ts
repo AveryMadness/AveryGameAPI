@@ -14,16 +14,31 @@ export type Database = {
     users: UserTable
     inventory: UserInventory
     pending_users: PendingUsersTable
+    stats: UserStats
+    cloudstorage: UserSettingsTable
 };
 
 export interface FlagsTable {
     flag_id: string
     flag_value: string
+    active_at: string
+    active_until: string
 };
 
 export type Flags = Selectable<FlagsTable>
 export type NewFlags = Insertable<FlagsTable>
 export type FlagsUpdate = Updateable<FlagsTable>
+
+export interface UserStats {
+    stat_owner_id: string
+    stat_id: string
+    stat_value: string
+    stat_type: string
+}
+
+export type Stats = Selectable<UserStats>
+export type NewStats = Insertable<UserStats>
+export type StatsUpdate = Updateable<UserStats>
 
 export interface NewsTable {
     news_id: string
@@ -90,4 +105,28 @@ export interface PendingUsersTable {
 export type PendingUsers = Selectable<PendingUsersTable>
 export type NewPendingUsers = Insertable<PendingUsersTable>
 export type PendingUsersUpdate = Updateable<PendingUsersTable>
+
+export interface UserSettingsTable {
+    owner_user_id: string
+    data: string
+    file_name: string
+    uploaded: string
+}
+
+export type UserSettings = Selectable<UserSettingsTable>
+export type NewUserSettings = Insertable<UserSettingsTable>
+export type UserSettingsUpdate = Updateable<UserSettingsTable>
+
+export interface UserInboxTable {
+    owner_user_id: string
+    message_title: string
+    message_author: string
+    message_content: string
+    message_sent: string
+    message_read: boolean
+}
+
+export type UserInbox = Selectable<UserInboxTable>
+export type NewUserInbox = Insertable<UserInboxTable>
+export type UserInboxUpdate = Updateable<UserInboxTable>
 

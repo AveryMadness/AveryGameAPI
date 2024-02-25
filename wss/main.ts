@@ -57,7 +57,7 @@ function _onNumOnlineUsersChanged()
         const clients = wss.clients;
 
         clients.forEach(client => {
-            client.send(JSON.stringify({payloadType: "updateOnlineUsers", payload: numOnlineUsers}));
+            client.send(JSON.stringify({payloadType: "updateOnlineUsers", payload: _numOnlineUsers}));
         });
     }
 }
@@ -146,7 +146,7 @@ export function InitializeWebsocketServer()
                 }
 
                 case "getNumOnlineUsers":
-                    ws.send(JSON.stringify({payloadType: "getNumOnlineUsers", payload: numOnlineUsers}));
+                    ws.send(JSON.stringify({payloadType: "getNumOnlineUsers", payload: _numOnlineUsers}));
                     break;
             }       
         });

@@ -94,35 +94,26 @@ export default async function() {
         
     });
 
-    router.get("/manifest/:key", async (c) => {
-        const {key} = c.req.param();
-
-        if (key == "averygame")
+    router.get("/cloudstorage", ServiceMiddleware("cloudstorage"), async (c) => {
+        const cloudstorageDir = Deno.readDir(path.join(".", "cloudstorage"));
+        
+        const files = [];
+        for await (const file of cloudstorageDir)
         {
-            const playlists = await getJson(path.join(".", "data", "playlist.json"));
-            const version = await getJson(path.join(".", "data", "version.json"));
-            const services = await getJson(path.join(".", "data", "services.json"));
+            const actualFile = await Deno.open(path.join(".", "cloudstorage", file.name), {read: true});
+            const md5 = new Md5().update(((await (await actualFile.readable.getReader()).read()).value) ?? "");
+            const hash = md5.toString("hex");
+            const stat = fs.statSync(path.join(".", "cloudstorage", file.name));
+            files.push({name: file.name, hash: hash, modified: new Date(stat.mtimeMs ?? 0).toISOString()});
+        }
 
-            return c.json({code: 200, message: "Success", manifest: {
-                _title: "Avery Game",
-                _activeDate: new Date(Date.now()).toISOString(),
-                _lastModified: new Date(Date.now()).toISOString(),
-                _locale: "en-US",
-                playlists: playlists,
-                versions: {
-                    versions: version.playableVersions,
-                    types: version.versionType
-                }
-            }})
-        }
-        else
-        {
-            return c.json({code: 404, message: "Key " + key + " not found."}, 404);
-        }
+        return c.json({code: 200, message: "Success", files: files});
     });
 
-    router.get("/cloudstorage/:ini", ServiceMiddleware("cloudstorage"), async (c) => {
-        const {ini} = c.req.param();
+    router.get("/cloudstorage/system/:ini", ServiceMiddleware("cloudstorage"), async (c) => {
+        let {ini} = c.req.param();
+
+        ini = ini.replace(".ini", "");
 
         if (existsSync(path.join(".", "cloudstorage", ini + ".ini")))
         {
@@ -140,6 +131,82 @@ export default async function() {
         {
             return c.json({code: 404, message: "cloudstorage file not found."}, 404);
         }
+    });
+
+    router.get("/cloudstorage/:user", ServiceMiddleware("cloudstorage"), userAuth, async (c) => {
+        const {user} = c.req.param();
+        const validateUser = c.req.header('user') ?? "";
+        if (validateUser != user)
+        {
+            return c.json({code: 403, message: "User not authorized."}, 404);
+        }
+        const userSettings = await db
+        .selectFrom('cloudstorage')
+        .selectAll('cloudstorage')
+        .where('owner_user_id', '=', user)
+        .where('file_name', '=', "GameUserSettings.ini")
+        .executeTakeFirst();
+
+        if (!userSettings)
+        {
+            return c.json({code: 404, message: "Not found."}, 404);
+        }
+
+        c.header("Content-Disposition", `attachment; filename=GameUserSettings.ini"`);
+        c.header("Created-At", userSettings.uploaded);
+        return c.body(userSettings.data);
+    });
+
+    router.put("/cloudstorage/:user", ServiceMiddleware("cloudstorage"), userAuth, async (c) => {
+        const {user} = c.req.param();
+        const validateUser = c.req.header('user') ?? "";
+        if (validateUser != user)
+        {
+            return c.json({code: 403, message: "User not authorized."}, 404);
+        }
+        const fileData = await c.req.arrayBuffer();
+        const fileDataArr = new Uint8Array(fileData);
+        const fileDataStr = new TextDecoder().decode(fileDataArr);
+
+        if (fileDataStr == "")
+        {
+            return c.json({code: 400, message: "Empty data."}, 400);
+        }
+
+        const userSettings = await db
+        .selectFrom('cloudstorage')
+        .selectAll('cloudstorage')
+        .where('owner_user_id', '=', user)
+        .where('file_name', '=', "GameUserSettings.ini")
+        .executeTakeFirst();
+
+        if (userSettings)
+        {
+            await db
+            .updateTable('cloudstorage')
+            .set({
+                data: fileDataStr,
+                uploaded: new Date().toISOString()
+            })
+            .where('owner_user_id', '=', user)
+            .where('file_name', '=', 'GameUserSettings.ini')
+            .execute();
+        }
+        else
+        {
+            await db
+            .insertInto('cloudstorage')
+            .values({
+                owner_user_id: user,
+                data: fileDataStr,
+                file_name: "GameUserSettings.ini",
+                uploaded: new Date().toISOString()
+            })
+            .execute();
+        }
+
+        return c.json({code: 200, message: "Success"});
+
     });
 
     router.get("/pak/:pakid", ServiceMiddleware("pakfile"), userAuth, async (c) => {
